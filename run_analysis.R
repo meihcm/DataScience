@@ -3,7 +3,9 @@
 PROJECT_HOME <- paste("~/DataScience") ##"/Users/michaelchiem/DataScience"
 DATASET_HOME <- paste(PROJECT_HOME,"/UCI HAR Dataset",sep="")
 TEST_HOME <- paste(PROJECT_HOME,"/UCI HAR Dataset/test",sep="")
+TEST_INERTIAL_HOME <- paste(PROJECT_HOME,"/UCI HAR Dataset/test/Inertial Signals",sep="")
 TRAIN_HOME <- paste(PROJECT_HOME,"/UCI HAR Dataset/train",sep="")
+TRAIN_INERTIAL_HOME <- paste(PROJECT_HOME,"/UCI HAR Dataset/train/Inertial Signals",sep="")
 ## test 2
 setwd(DATASET_HOME)
 ACTIVITY_LABELS <- read.table("activity_labels.txt", col.names = c("activityKey","activityLabel"), header=FALSE)
@@ -14,8 +16,21 @@ FEATURE_MAP <- read.table("features.txt", header=FALSE)
 setwd(TEST_HOME)
 TEST_SUBJECT_ROWS <- read.table("subject_test.txt", col.names = c("subjectKey"), header=FALSE)
 TEST_Y_LABEL_ROWS <- read.table("y_test.txt", col.names=c("labelKey"), header=FALSE)
-TEST_Y_DATA <- read.table("X_test.txt", col.names=as.vector(T_FEATURE_MAP$V2), header=FALSE)
-## ?? What is TEST_Y_DATA vs the inertial data??
+TEST_Y_DATA <- read.table("X_test.txt", col.names=as.vector(FEATURE_MAP$V2), header=FALSE)
+
+## TEST-Inertial-Acceleration merging (total x,y,z + body x,y,z)
+setwd(TEST_INERTIAL_HOME)
+COLUMN_VECTOR_HEADINGS <- c(1:128)
+TEST_INERTIAL_BODY_ACCEL_X <- read.table("body_acc_x_test.txt", col.names=as.vector(COLUMN_VECTOR_HEADINGS), header=FALSE)
+## TODO: Need to add user and type columns
+TEST_INERTIAL_BODY_ACCEL_Y <- read.table("body_acc_y_test.txt", col.names=as.vector(COLUMN_VECTOR_HEADINGS), header=FALSE)
+TEST_INERTIAL_BODY_ACCEL_Z <- read.table("body_acc_z_test.txt", col.names=as.vector(COLUMN_VECTOR_HEADINGS), header=FALSE)
+TEST_INERTIAL_TOTAL_ACCEL_X <- read.table("total_acc_x_test.txt", col.names=as.vector(COLUMN_VECTOR_HEADINGS), header=FALSE)
+TEST_INERTIAL_TOTAL_ACCEL_Y <- read.table("total_acc_y_test.txt", col.names=as.vector(COLUMN_VECTOR_HEADINGS), header=FALSE)
+TEST_INERTIAL_TOTAL_ACCEL_Z <- read.table("total_acc_z_test.txt", col.names=as.vector(COLUMN_VECTOR_HEADINGS), header=FALSE)
+
+## TEST-Inertial-Gyro merging (gyro x, y, z)
+
 
 #### 1.2 LOAD ALL TRAIN FILES
 
