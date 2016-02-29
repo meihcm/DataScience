@@ -4,7 +4,7 @@ PROJECT_HOME <- paste("~/DataScience") ##"/Users/michaelchiem/DataScience"
 DATASET_HOME <- paste(PROJECT_HOME,"/UCI HAR Dataset",sep="")
 TEST_HOME <- paste(PROJECT_HOME,"/UCI HAR Dataset/test",sep="")
 TRAIN_HOME <- paste(PROJECT_HOME,"/UCI HAR Dataset/train",sep="")
-
+## test 2
 setwd(DATASET_HOME)
 ACTIVITY_LABELS <- read.table("activity_labels.txt", col.names = c("activityKey","activityLabel"), header=FALSE)
 FEATURE_MAP <- read.table("features.txt", header=FALSE)
