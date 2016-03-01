@@ -6,7 +6,7 @@ TEST_HOME <- paste(PROJECT_HOME,"/UCI HAR Dataset/test",sep="")
 TEST_INERTIAL_HOME <- paste(PROJECT_HOME,"/UCI HAR Dataset/test/Inertial Signals",sep="")
 TRAIN_HOME <- paste(PROJECT_HOME,"/UCI HAR Dataset/train",sep="")
 TRAIN_INERTIAL_HOME <- paste(PROJECT_HOME,"/UCI HAR Dataset/train/Inertial Signals",sep="")
-## abc
+
 setwd(DATASET_HOME)
 ACTIVITY_LABELS <- read.table("activity_labels.txt", col.names = c("activityKey","activityLabel"), header=FALSE)
 FEATURE_MAP <- read.table("features.txt", header=FALSE)
