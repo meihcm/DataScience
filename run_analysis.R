@@ -1,4 +1,6 @@
 ## SETUP
+library("data.table")
+library("dplyr")
 #### Assumes default is UCI Data home
 PROJECT_HOME <- paste("~/DataScience") ##"/Users/michaelchiem/DataScience"
 DATASET_HOME <- paste(PROJECT_HOME,"/UCI HAR Dataset",sep="")
@@ -149,3 +151,4 @@ FULL_AVG_TABLE <- NULL
 
 ## 4 From the data set in step 3, create a second, independent tidy data set with 
 ## average of each variable for each activity and each subject.
+TIDY_TABLE <- FULL_ANALYSIS_TABLE %>% group_by(subjectKey,activityLabel) %>% summarize_each(funs(mean))
