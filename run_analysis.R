@@ -139,14 +139,13 @@ FULL_INERTIAL_TABLE <- rbind(FULL_TEST_ACCEL_INERTIAL,FULL_TEST_GYRO_INERTIAL, F
 ## 2 Extract columns containing mean and std dev for each measurement
 FULL_STD_TABLE <- FULL_TABLE[grepl("std", tolower(names(FULL_TABLE)))]
 FULL_AVG_TABLE <- FULL_TABLE[grepl("mean", tolower(names(FULL_TABLE)))]
+## and 3 Create variable ActivityLabel and ActivityName that label all observations 
+## with the corresponding activity labels and names respectively.
 NEW_COLUMN_NAMES <- c("subjectKey","activityKey", "activityLabel", names(FULL_STD_TABLE), names(FULL_AVG_TABLE))
 FULL_ANALYSIS_TABLE <- cbind(FULL_TABLE$subjectKey,FULL_TABLE$activityKey, FULL_TABLE$activityLabel, FULL_STD_TABLE, FULL_AVG_TABLE)
 names(FULL_ANALYSIS_TABLE) <- NEW_COLUMN_NAMES
 FULL_STD_TABLE <- NULL
 FULL_AVG_TABLE <- NULL
-
-## 3 Create variable ActivityLabel and ActivityName that label all observations 
-## with the corresponding activity labels and names respectively.
 
 ## 4 From the data set in step 3, create a second, independent tidy data set with 
 ## average of each variable for each activity and each subject.
