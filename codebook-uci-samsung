@@ -1,0 +1,11 @@
+Author: Michael Chiem
+
+The following data wrangling was made to produce tidy-uci-samsung.csv
+
+Test Dataset
+To build the full TEST_Y_DATA table, I did the following:
+1. Brought in activity_labels.txt with column names activityKey and activityLabel
+2. Brought in y_test.txt and merge with the activity_lables by activityKey
+3. Create the full table by column binding subject_test.txt with #2 above.
+4. Brought in X_test.txt and have the column names (561 columns) mapped from features.txt
+5. Created TEST_Y_DATA from doing the bind of #3, and #4
