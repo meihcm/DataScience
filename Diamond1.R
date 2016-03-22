@@ -20,7 +20,8 @@
 # SUBMIT YOUR CODE BELOW THIS LINE
 # ===================================================================
 install.packages("ggplot2")
-library(diamonds)
+library(ggplot2)
+data(diamonds)
 ## 1. Price/Carat diamond by colors ##
 ## validation ##
 by(diamonds$price/diamonds$carat, diamonds$color, summary)
