@@ -11,6 +11,7 @@
 # ENTER YOUR CODE BELOW THIS LINE
 # ===========================================
 install.packages("ggplot2")
+library(ggplot2)
 data(diamonds)
 ggplot(data=diamonds, aes(y=price, x=x)) +
   geom_point()
