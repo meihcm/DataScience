@@ -89,10 +89,107 @@ ggplot(data=subset(diamonds, diamonds$volume < quantile(diamonds$volume,.9)), ae
 
 # DO NOT DELETE THIS NEXT LINE OF CODE
 # ========================================================================
-pf <- read.delim('/datasets/ud651/pseudo_facebook.tsv')
+pf <- read.delim('https://s3.amazonaws.com/udacity-hosted-downloads/ud651/pseudo_facebook.tsv')
 
 
 # ENTER YOUR CODE BELOW THIS LINE
 # ========================================================================
-
+pf$prop_initiated <- ifelse(pf$friend_count > 0, round(pf$friendships_initiated/pf$friend_count,2), NaN) 
   
+# Create a line graph of the median proportion of
+# friendships initiated ('prop_initiated') vs.
+# tenure and color the line segment by
+# year_joined.bucket.
+
+# Recall, we created year_joined.bucket in Lesson 5
+# by first creating year_joined from the variable tenure.
+# Then, we used the cut function on year_joined to create
+# four bins or cohorts of users.
+
+# (2004, 2009]
+# (2009, 2011]
+# (2011, 2012]
+# (2012, 2014]
+
+# The plot should look something like this.
+# http://i.imgur.com/vNjPtDh.jpg
+# OR this
+# http://i.imgur.com/IBN1ufQ.jpg
+
+# This assignment is not graded and
+# will be marked as correct when you submit.
+
+# ENTER YOUR CODE BELOW THIS LINE
+# ===========================================================
+pf$year_joined <- (2014 - floor(pf$tenure/365))
+pf$year_joined.bucket <- cut(pf$year_joined,c(2004,2009,2011,2012,2014))
+ggplot(subset(pf, tenure > 0)) +
+  geom_line(aes(x=tenure,y=prop_initiated, color=year_joined.bucket),stat='summary', fun.y=median,na.rm = TRUE)
+
+# Smooth the last plot you created of
+# of prop_initiated vs tenure colored by
+# year_joined.bucket. You can bin together ranges
+# of tenure or add a smoother to the plot.
+
+# There won't be a solution image for this exercise.
+# You will answer some questions about your plot in
+# the next two exercises.
+
+# This assignment is not graded and
+# will be marked as correct when you submit.
+
+# ENTER YOUR CODE BELOW THIS LINE
+# ====================================================
+pf$year_joined <- (2014 - floor(pf$tenure/365))
+pf$year_joined.bucket <- cut(pf$year_joined,c(2004,2009,2011,2012,2014))
+ggplot(subset(pf, tenure > 0),aes(x=tenure,y=prop_initiated),stat='summary', fun.y=median) +
+  #geom_line(stat='summary', fun.y=median) +
+  geom_smooth(aes(color = year_joined.bucket),na.rm=TRUE)
+
+# Create a scatter plot of the price/carat ratio
+# of diamonds. The variable x should be
+# assigned to cut. The points should be colored
+# by diamond color, and the plot should be
+# faceted by clarity.
+
+# The plot should look something like this.
+# http://i.imgur.com/YzbWkHT.jpg.
+
+# Note: In the link, a color palette of type
+# 'div' was used to color the histogram using
+# scale_color_brewer(type = 'div')
+
+# This assignment is not graded and
+# will be marked as correct when you submit.
+
+# ENTER YOUR CODE BELOW THIS LINE
+# ===========================================
+diamonds$price_carat <- round(diamonds$price / diamonds$carat,2)
+ggplot(diamonds, aes(x=cut, y=price_carat, color=color)) +
+  geom_point(stat = 'identity') +
+  facet_wrap(~ clarity) +
+  scale_color_brewer(type='div') +
+  geom_jitter(size=1)
+
+# The Gapminder website contains over 500 data sets with information about
+# the world's population. Your task is to continue the investigation you did at the
+# end of Problem Set 4 or you can start fresh and choose a different
+# data set from Gapminder.
+
+# If you’re feeling adventurous or want to try some data munging see if you can
+# find a data set or scrape one from the web.
+
+# In your investigation, examine 3 or more variables and create 2-5 plots that make
+# use of the techniques from Lesson 5.
+
+# You can find a link to the Gapminder website in the Instructor Notes.
+
+# Once you've completed your investigation, create a post in the discussions that includes:
+#       1. the variable(s) you investigated, your observations, and any summary statistics
+#       2. snippets of code that created the plots
+#       3. links to the images of your plots
+
+# Copy and paste all of the code that you used for
+# your investigation, and submit it when you are ready.
+# ============================================================================================
+
