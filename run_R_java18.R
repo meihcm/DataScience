@@ -6,12 +6,14 @@
 install.packages('rJava', type='source')
 ## 3. Proving that it works with stanford's nlp
 devtools::install_github("statsmaths/coreNLP", force=TRUE)
-download.file("http://nlp.stanford.edu/software/stanford-corenlp-full-2015-01-29.zip") 
+download.file("http://nlp.stanford.edu/software/stanford-corenlp-full-2015-01-29.zip",destfile="stanford-corenlp-full-2015-01-29.zip") 
 unzip("stanford-corenlp-full-2015-01-29.zip") 
 library(coreNLP) 
 initCoreNLP("stanford-corenlp-full-2015-01-29") 
 
 ## Example parsing of url
+install.packages("XML")
+library("XML")
 doc.html = htmlTreeParse('http://mashable.com/2013/01/07/amazon-instant-video-browser/#SvEM_K3nFuqq',
                          useInternal = TRUE)
 
