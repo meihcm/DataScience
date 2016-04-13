@@ -32,3 +32,37 @@ write(doc.text, file="www.nbcnewyork.com.html")
 ## Now run
 output = annotateString(doc.text)
 sentiment <- getSentiment(output)
+
+## Diamonds as randomForest
+data=diamonds
+set.seed(42)
+rownames(data)<-1:nrow(data)
+rows <- sample(x=1:nrow(data),size=0.7 *  nrow(data))
+
+train <- data[rows,]
+test <-data
+install.packages("randomForest")
+library(randomForest)
+
+set.seed(42)
+model0<-randomForest(price~.,data=train,replace=T,ntree=100)
+
+imp<-importance(model0)
+vars<-dimnames(imp)[[1]]
+imp<-data.frame(vars=vars,imp=as.numeric(imp[,1]))
+imp<-imp[order(imp$imp,decreasing=T),]
+
+par(mfrow=c(1,2))
+varImpPlot(model0,main='Variable Importance Plot: Base Model')
+plot(model0,main='Error vs No. of trees plot: Base Model')
+
+pred<-predict(object=model0,newdata=test)
+actual<-test$price
+result<-data.frame(actual=actual,predicted=pred)
+model0
+pred
+
+ggplot(result)+
+  geom_point(aes(x=actual,y=predicted,color=predicted-actual),alpha=0.7)+
+  ggtitle('Plotting Error')
+
