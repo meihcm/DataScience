@@ -3,6 +3,7 @@ library("dplyr")
 library("gdata")
 install.packages("XML")
 library("XML")
+library(stringr)
 
 projectHome <- paste("~/DataScience") ##"/Users/michaelchiem/DataScience"
 datasetHome <- paste(projectHome,"/OnlineNewsPopularity",sep="")
@@ -14,7 +15,12 @@ for (outerCounter in 0:400)
   startStep = (outerCounter * row_batches) + 1 
   maxStep = startStep + row_batches  - 1
   ## chunk the process ##
-  skipRow = startStep - 1
+  if(outerCounter > 0)
+  {
+    skipRow = startStep
+  }  else {
+    skipRow = startStep - 1
+  }
   if(skipRow == 0) {
     print(paste("Reading from csv file skipping (1st time): ", skipRow, ", batch of:" , row_batches))
     mashable_df = read.csv("OnlineNewsPopularity.csv", sep=",", skip = skipRow, nrows=row_batches, header = TRUE)
@@ -30,7 +36,7 @@ for (outerCounter in 0:400)
   for(counter in 1:row_batches) 
   {
     thisUrl = mashable_df$url[counter]
-    print(paste("about to read from url:",thisUrl))
+    ## print(paste("about to read from url:",thisUrl))
     doc.html = htmlTreeParse(thisUrl,useInternal = TRUE)
     # Extract all the paragraphs (HTML tag is p, starting at
     # the root of the document). Unlist flattens the list to
@@ -38,11 +44,13 @@ for (outerCounter in 0:400)
     doc.title = unlist(xpathApply(doc.html, '//h1', xmlValue))
     doc.text = unlist(xpathApply(doc.html, '//section/p', xmlValue))
     title = doc.title[2]
+    title = str_replace_all(title, "[\r\n]" , " ")
     nextParagraphIndex = 1
     for(i in nextParagraphIndex:length(doc.text))
     {
       paragraph1 = doc.text[i]
       if(!is.null(paragraph1) && !is.na(paragraph1) && trimws(paragraph1) != "") {
+        paragraph1 = str_replace_all(paragraph1, "[\r\n]" , " ")
         nextParagraphIndex = i + 1
         break ##break out of this loop because we have a paragraph
       }
@@ -51,6 +59,7 @@ for (outerCounter in 0:400)
     {
       paragraph2 = doc.text[i]
       if(!is.null(paragraph2) && !is.na(paragraph2) && trimws(paragraph2) != "") {
+        paragraph2 = str_replace_all(paragraph2, "[\r\n]" , " ")
         nextParagraphIndex = i + 1
         break ##break out of this loop because we have a paragraph
       }
@@ -61,6 +70,7 @@ for (outerCounter in 0:400)
     {
       paragraph3 = doc.text[i]
       if(!is.null(paragraph3) && !is.na(paragraph3) && trimws(paragraph3) != "") {
+        paragraph3 = str_replace_all(paragraph3, "[\r\n]" , " ")
         nextParagraphIndex = i + 1
         break ##break out of this loop because we have a paragraph
       }
