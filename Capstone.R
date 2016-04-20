@@ -10,7 +10,7 @@ datasetHome <- paste(projectHome,"/OnlineNewsPopularity",sep="")
 setwd(datasetHome)
 row_batches=100
 
-for (outerCounter in 0:400) 
+for (outerCounter in 146:400) 
 {
   startStep = (outerCounter * row_batches) + 1 
   maxStep = startStep + row_batches  - 1
@@ -36,7 +36,12 @@ for (outerCounter in 0:400)
   for(counter in 1:row_batches) 
   {
     thisUrl = mashable_df$url[counter]
-    ## print(paste("about to read from url:",thisUrl))
+    response <- GET(thisUrl)
+    if (response$status_code != 200) {
+      print(paste("Detected error url(skipping:",thisUrl))
+      next
+    }
+    ##print(paste("about to read from url:",thisUrl))
     doc.html = htmlTreeParse(thisUrl,useInternal = TRUE)
     # Extract all the paragraphs (HTML tag is p, starting at
     # the root of the document). Unlist flattens the list to
