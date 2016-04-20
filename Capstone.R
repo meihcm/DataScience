@@ -36,7 +36,7 @@ for (outerCounter in 146:400)
   for(counter in 1:row_batches) 
   {
     thisUrl = mashable_df$url[counter]
-    response <- GET(thisUrl)
+    response <- GET(as.character(thisUrl))
     if (response$status_code != 200) {
       print(paste("Detected error url(skipping:",thisUrl))
       next
