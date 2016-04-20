@@ -10,7 +10,7 @@ datasetHome <- paste(projectHome,"/OnlineNewsPopularity",sep="")
 setwd(datasetHome)
 row_batches=100
 
-for (outerCounter in 146:400) 
+for (outerCounter in 166:166) 
 {
   startStep = (outerCounter * row_batches) + 1 
   maxStep = startStep + row_batches  - 1
@@ -58,6 +58,8 @@ for (outerCounter in 146:400)
         paragraph1 = str_replace_all(paragraph1, "[\r\n]" , " ")
         nextParagraphIndex = i + 1
         break ##break out of this loop because we have a paragraph
+      } else {
+        paragraph1 = ""
       }
     }
     for(i in nextParagraphIndex:length(doc.text))
@@ -67,6 +69,8 @@ for (outerCounter in 146:400)
         paragraph2 = str_replace_all(paragraph2, "[\r\n]" , " ")
         nextParagraphIndex = i + 1
         break ##break out of this loop because we have a paragraph
+      } else {
+        paragraph2 = ""
       }
     }
     if(length(a <- grep('courtesy of', paragraph2,ignore.case = TRUE)))
@@ -78,6 +82,8 @@ for (outerCounter in 146:400)
         paragraph3 = str_replace_all(paragraph3, "[\r\n]" , " ")
         nextParagraphIndex = i + 1
         break ##break out of this loop because we have a paragraph
+      } else {
+        paragraph3 = ""
       }
     }
     if(length(a <- grep('courtesy of', paragraph3,ignore.case = TRUE)))
