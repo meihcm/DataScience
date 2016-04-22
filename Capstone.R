@@ -16,10 +16,12 @@ initCoreNLP("stanford-corenlp-full-2015-01-29")
 
 library("data.table")
 library("dplyr")
+install.packages("gdata")
 library("gdata")
-install.packages("XML")
 library("XML")
 library(stringr)
+library(curl)
+library(httr)
 
 projectHome <- paste("~/DataScience") ##"/Users/michaelchiem/DataScience"
 datasetHome <- paste(projectHome,"/OnlineNewsPopularity",sep="")
@@ -42,6 +44,8 @@ row_batches=100
 
 for (outerCounter in 0:10) 
 {
+  print(paste("Start Time:",Sys.time()))
+  
   startStep = (outerCounter * row_batches) + 1 
   maxStep = startStep + row_batches  - 1
   ## chunk the process ##
@@ -148,4 +152,5 @@ for (outerCounter in 0:10)
   } else {
     write.table(mashable_df, sep='^', file="mashable_engineered.tbl", row.names=FALSE,quote=TRUE)
   }
+  print(paste("End Time:",Sys.time()))
 } ## outer for
