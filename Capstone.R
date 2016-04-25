@@ -42,7 +42,7 @@ getSentimentScore <- function(textStr) {
 ## MAIN ##
 row_batches=100
 
-for (outerCounter in 0:10) 
+for (outerCounter in 205:400) 
 {
   print(paste("Start Time:",Sys.time()))
   
@@ -143,6 +143,11 @@ for (outerCounter in 0:10)
     mashable_df$para2_sentiment[counter] = getSentimentScore(paragraph2)
     mashable_df$para3_sentiment[counter] = getSentimentScore(paragraph3)
     mashable_df$full_sentiment[counter] = getSentimentScore(doc.text)
+    
+    ## every 20 print out something
+    if(counter %% 20 == 0) {
+      print(paste("Finished up to: ", counter))
+    }
   }
   print("about to write to file")
   ## Chunk the save by appending ##
