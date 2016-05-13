@@ -21,7 +21,8 @@ names(new_df1) = names(new_df)
 new_df2 <- read.table("mashable_engineered.tbl", header=FALSE, sep='^', na.strings="NA")
 names(new_df2) = names(new_df)
 new_df <- rbind(new_df,new_df1,new_df2)
-new_df <- new_df[new_df$shares < 3000,]
+## Prune the dataframe to remove outlier
+##new_df <- new_df[new_df$shares < 3000,]
 
 ## Change fields from factor to character classes
 new_df$title <- as.character(new_df$title)
@@ -55,34 +56,35 @@ new_df$shares = as.factor(new_df$shares)
 ## Make factor of sentiment
 ## 0 very negative, 1 negative, 2 neutral, 3 positive, 4 very positive
 new_df$title_sentiment[new_df$title_sentiment < 1] = 0
+new_df$title_sentiment[new_df$title_sentiment > 3] = 4
 new_df$title_sentiment[new_df$title_sentiment < 2 & new_df$title_sentiment > 0] = 1
 new_df$title_sentiment[new_df$title_sentiment < 3 & new_df$title_sentiment > 1] = 2
 new_df$title_sentiment[new_df$title_sentiment < 4 & new_df$title_sentiment > 2] = 3
-new_df$title_sentiment[new_df$title_sentiment > 3] = 4
 ##new_df$title_sentiment <- as.factor(new_df$title_sentiment)
 new_df$para1_sentiment[new_df$para1_sentiment < 1] = 0
+new_df$para1_sentiment[new_df$para1_sentiment > 3] = 4
 new_df$para1_sentiment[new_df$para1_sentiment < 2 & new_df$para1_sentiment > 0] = 1
 new_df$para1_sentiment[new_df$para1_sentiment < 3 & new_df$para1_sentiment > 1] = 2
 new_df$para1_sentiment[new_df$para1_sentiment < 4 & new_df$para1_sentiment > 2] = 3
-new_df$para1_sentiment[new_df$para1_sentiment > 3] = 4
 ##new_df$para1_sentiment <- as.factor(new_df$para1_sentiment)
 new_df$para2_sentiment[new_df$para2_sentiment < 1] = 0
+new_df$para2_sentiment[new_df$para2_sentiment > 3] = 4
 new_df$para2_sentiment[new_df$para2_sentiment < 2 & new_df$para2_sentiment > 0] = 1
 new_df$para2_sentiment[new_df$para2_sentiment < 3 & new_df$para2_sentiment > 1] = 2
 new_df$para2_sentiment[new_df$para2_sentiment < 4 & new_df$para2_sentiment > 2] = 3
-new_df$para2_sentiment[new_df$para2_sentiment > 3] = 4
 ##new_df$para2_sentiment <- as.factor(new_df$para2_sentiment)
 new_df$para3_sentiment[new_df$para3_sentiment < 1] = 0
+new_df$para3_sentiment[new_df$para3_sentiment > 3] = 4
 new_df$para3_sentiment[new_df$para3_sentiment < 2 & new_df$para3_sentiment > 0] = 1
 new_df$para3_sentiment[new_df$para3_sentiment < 3 & new_df$para3_sentiment > 1] = 2
 new_df$para3_sentiment[new_df$para3_sentiment < 4 & new_df$para3_sentiment > 2] = 3
-new_df$para3_sentiment[new_df$para3_sentiment > 3] = 4
 ##new_df$para3_sentiment <- as.factor(new_df$para3_sentiment)
 new_df$full_sentiment[new_df$full_sentiment < 1] = 0
+new_df$full_sentiment[new_df$full_sentiment > 3] = 4
 new_df$full_sentiment[new_df$full_sentiment < 2 & new_df$full_sentiment > 0] = 1
 new_df$full_sentiment[new_df$full_sentiment < 3 & new_df$full_sentiment > 1] = 2
 new_df$full_sentiment[new_df$full_sentiment < 4 & new_df$full_sentiment > 2] = 3
-new_df$full_sentiment[new_df$full_sentiment > 3] = 4
+
 ##new_df$full_sentiment <- as.factor(new_df$full_sentiment)
 
 ## Split data into test and train
