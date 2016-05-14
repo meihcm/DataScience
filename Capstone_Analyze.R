@@ -21,8 +21,6 @@ names(new_df1) = names(new_df)
 new_df2 <- read.table("mashable_engineered.tbl", header=FALSE, sep='^', na.strings="NA")
 names(new_df2) = names(new_df)
 new_df <- rbind(new_df,new_df1,new_df2)
-## Prune the dataframe to remove outlier
-##new_df <- new_df[new_df$shares < 3000,]
 
 ## Change fields from factor to character classes
 new_df$title <- as.character(new_df$title)
@@ -30,27 +28,25 @@ new_df$para1 <- as.character(new_df$para1)
 new_df$para2 <- as.character(new_df$para2)
 new_df$para3 <- as.character(new_df$para3)
 
-## Clean all new features that have empty
-## Remove empty paragraph 3
-new_df = new_df[trimws(new_df$para3) != "",]
-new_df = new_df[!is.na(new_df$para3_sentiment),]
-## Remove empty paragraph 2
-new_df = new_df[trimws(new_df$para2) != "",]
-new_df = new_df[!is.na(new_df$para2_sentiment),]
-## Remove empty paragraph 1
-new_df = new_df[trimws(new_df$para1) != "",]
-new_df = new_df[!is.na(new_df$para1_sentiment),]
-## Remove empty title
-new_df = new_df[trimws(new_df$title) != "",]
-new_df = new_df[!is.na(new_df$title_sentiment),]
-## Remove full sentiment NA
-new_df = new_df[!is.na(new_df$full_sentiment),]
+## Or treat NA in sentiment by using mean value
+summary(new_df$para3_sentiment) ## Using mean of 1.378
+new_df$para3_sentiment[is.na(new_df$para3_sentiment)] = 1.378
+summary(new_df$para3_sentiment) ## Using mean of 1.347
+new_df$para2_sentiment[is.na(new_df$para2_sentiment)] = 1.347
+summary(new_df$para3_sentiment) ## Using mean of 1.395
+new_df$para1_sentiment[is.na(new_df$para1_sentiment)] = 1.395
+summary(new_df$title_sentiment) ## Using mean of 1.453
+new_df$title_sentiment[is.na(new_df$title_sentiment)] = 1.453
+summary(new_df$full_sentiment) ## Using mean of 1.462
+new_df$full_sentiment[is.na(new_df$full_sentiment)] = 1.462
+
 
 ## convert Shares to 1 or 0 for popular or not
 ## We are taking the mean to be the split of 1 when it is higher than mean otherwise 0
 ## describe(mashable_df$shares)
-new_df$shares[new_df$shares < 1200] = 0
-new_df$shares[new_df$shares >= 1200] = 1
+nrow(new_df[new_df$shares > 1490,])## 1490 seems to split 1 and 0 into half
+new_df$shares[new_df$shares < 1490] = 0
+new_df$shares[new_df$shares >= 1490] = 1
 new_df$shares = as.factor(new_df$shares)
 
 ## Make factor of sentiment
@@ -98,7 +94,7 @@ testing_df = subset(new_df,split==FALSE)
 model1 <- glm(shares ~ title_sentiment + para1_sentiment + para2_sentiment 
               + para3_sentiment + full_sentiment,family=binomial(link='logit'),data=training_df)
 summary(model1)
-model2 <- glm(shares ~ title_sentiment
+model2 <- glm(shares ~ title_sentiment + para1_sentiment
                 ,family=binomial(link='logit'),data=training_df)
 summary(model2)
 
