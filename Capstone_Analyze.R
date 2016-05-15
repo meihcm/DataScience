@@ -10,17 +10,22 @@ projectHome <- paste("~/DataScience") ##"/Users/michaelchiem/DataScience"
 datasetHome <- paste(projectHome,"/OnlineNewsPopularity",sep="")
 setwd(datasetHome)
 
-## Read all data files and merge ##
+## Read all data files ##
+## Original dataset is used to find a share threshold-value 'x' so that we're confortable
+## as saying anything above x is popular and below x is not popular
 mashable_df <- read.table("OnlineNewsPopularity.csv", header=TRUE, sep=",", na.strings="NA")
-## Remove right skewed, as defined by shares >=100000 as only 58 of them are of that threshold
-mashable_df = mashable_df[mashable_df$shares < 3000,]
+describe(mashable_df$shares)
+## kurtosis 1832, skew 33
+## Therefore try to remove right skewed, as defined by shares >=3200
+## mashable_df = mashable_df[mashable_df$shares < 3200,]
+## describe(mashable_df$shares)
+## kurtosis 0, skew .83
+## Assign it to 1200 as it represents close to a 50/50 split
+nrow(mashable_df[mashable_df$shares >= 1540,]) / nrow(mashable_df)
+## non skewed 1200, skewed= 1401
+popular_share_threshold = 1401
 
-new_df <- read.table("mashable_engineeredto700.tbl", header=TRUE, sep='^', na.strings="NA")
-new_df1 <- read.table("mashable_engineeredto20400.tbl", header=FALSE, sep='^', na.strings="NA")
-names(new_df1) = names(new_df)
-new_df2 <- read.table("mashable_engineered.tbl", header=FALSE, sep='^', na.strings="NA")
-names(new_df2) = names(new_df)
-new_df <- rbind(new_df,new_df1,new_df2)
+new_df <- read.table("mashable_engineered.tbl", header=TRUE, sep='^', na.strings="NA")
 
 ## Change fields from factor to character classes
 new_df$title <- as.character(new_df$title)
@@ -40,13 +45,12 @@ new_df$title_sentiment[is.na(new_df$title_sentiment)] = 1.453
 summary(new_df$full_sentiment) ## Using mean of 1.462
 new_df$full_sentiment[is.na(new_df$full_sentiment)] = 1.462
 
-
 ## convert Shares to 1 or 0 for popular or not
 ## We are taking the mean to be the split of 1 when it is higher than mean otherwise 0
 ## describe(mashable_df$shares)
-nrow(new_df[new_df$shares > 1490,])## 1490 seems to split 1 and 0 into half
-new_df$shares[new_df$shares < 1490] = 0
-new_df$shares[new_df$shares >= 1490] = 1
+nrow(new_df[new_df$shares > popular_share_threshold,])## 1490 seems to split 1 and 0 into half
+new_df$shares[new_df$shares < popular_share_threshold] = 0
+new_df$shares[new_df$shares >= popular_share_threshold] = 1
 new_df$shares = as.factor(new_df$shares)
 
 ## Make factor of sentiment
@@ -112,7 +116,6 @@ auc_model1
 p_model2 <- predict(model2, type="response")
 ## Small threshold will allow for larger 1 errors
 summary(p_model2)
-table(training_df$shares, p_model2 > 0.22)
 pr_model2 <- prediction(p_model2, training_df$shares)
 prf_model2 <- performance(pr_model2, "tpr", "fpr")
 plot(prf_model2, colorize = TRUE, print.cutoffs.at=seq(0,1,.01),text.adj = c(-0.2,1.7))
