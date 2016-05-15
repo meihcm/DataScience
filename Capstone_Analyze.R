@@ -98,9 +98,17 @@ testing_df = subset(new_df,split==FALSE)
 model1 <- glm(shares ~ title_sentiment + para1_sentiment + para2_sentiment 
               + para3_sentiment + full_sentiment,family=binomial(link='logit'),data=training_df)
 summary(model1)
-model2 <- glm(shares ~ title_sentiment + para1_sentiment
+model2 <- glm(shares ~ title_sentiment + para1_sentiment + num_imgs
                 ,family=binomial(link='logit'),data=training_df)
 summary(model2)
+model3 <- glm(shares ~ weekday_is_monday + weekday_is_tuesday + weekday_is_wednesday 
+               + weekday_is_thursday + weekday_is_friday + weekday_is_saturday 
+               + data_channel_is_entertainment + data_channel_is_bus 
+               + data_channel_is_socmed + data_channel_is_world 
+               + num_imgs
+              + para1_sentiment,
+               family=binomial(link='logit'),data=training_df)
+summary(model3)
 
 ## Predict model 1
 p_model1 <- predict(model1, type="response")
@@ -123,6 +131,18 @@ plot(prf_model2, colorize = TRUE, print.cutoffs.at=seq(0,1,.01),text.adj = c(-0.
 auc_model2 <- performance(pr_model2, measure = "auc")
 auc_model2 <- auc_model2@y.values[[1]]
 auc_model2
+
+## Predict model 3
+p_model3 <- predict(model3, type="response")
+## Small threshold will allow for larger 1 errors
+summary(p_model3)
+pr_model3 <- prediction(p_model3, training_df$shares)
+prf_model3 <- performance(pr_model3, "tpr", "fpr")
+plot(prf_model3, colorize = TRUE, print.cutoffs.at=seq(0,1,.1),text.adj = c(-0.3,1.7))
+## AUC
+auc_model3 <- performance(pr_model3, measure = "auc")
+auc_model3 <- auc_model3@y.values[[1]]
+auc_model3
 
 ## Comparison
 ## Baseline number of 1s in testing / all testing rows
