@@ -15,14 +15,12 @@ setwd(datasetHome)
 ## as saying anything above x is popular and below x is not popular
 mashable_df <- read.table("OnlineNewsPopularity.csv", header=TRUE, sep=",", na.strings="NA")
 describe(mashable_df$shares)
-## kurtosis 1832, skew 33
-## Therefore try to remove right skewed, as defined by shares >=3200
-## mashable_df = mashable_df[mashable_df$shares < 3200,]
-## describe(mashable_df$shares)
-## kurtosis 0, skew .83
-## Assign it to 1200 as it represents close to a 50/50 split
-nrow(mashable_df[mashable_df$shares >= 1540,]) / nrow(mashable_df)
-## non skewed 1200, skewed= 1401
+## Original popularity if based on mean
+## Anything greater than mean would have only been about 20%
+original_popularity_pct = nrow(mashable_df[mashable_df$shares >= 3395,]) / nrow(mashable_df)
+## Assign it to 1400 (the median) as it represents close to a 50/50 split
+## Motivation is that we want a relax way to detect for popularity
+relaxed_popularity_pct = nrow(mashable_df[mashable_df$shares >= 1401,]) / nrow(mashable_df)
 popular_share_threshold = 1401
 
 new_df <- read.table("mashable_engineered.tbl", header=TRUE, sep='^', na.strings="NA")
@@ -33,7 +31,7 @@ new_df$para1 <- as.character(new_df$para1)
 new_df$para2 <- as.character(new_df$para2)
 new_df$para3 <- as.character(new_df$para3)
 
-## Or treat NA in sentiment by using mean value
+## Treat NA in sentiment by using mean value
 summary(new_df$para3_sentiment) ## Using mean of 1.378
 new_df$para3_sentiment[is.na(new_df$para3_sentiment)] = 1.378
 summary(new_df$para3_sentiment) ## Using mean of 1.347
@@ -48,44 +46,10 @@ new_df$full_sentiment[is.na(new_df$full_sentiment)] = 1.462
 ## convert Shares to 1 or 0 for popular or not
 ## We are taking the mean to be the split of 1 when it is higher than mean otherwise 0
 ## describe(mashable_df$shares)
-nrow(new_df[new_df$shares > popular_share_threshold,])## 1490 seems to split 1 and 0 into half
+nrow(new_df[new_df$shares > popular_share_threshold,])## 1401 seems to split 1 and 0 into half
 new_df$shares[new_df$shares < popular_share_threshold] = 0
 new_df$shares[new_df$shares >= popular_share_threshold] = 1
 new_df$shares = as.factor(new_df$shares)
-
-## Make factor of sentiment
-## 0 very negative, 1 negative, 2 neutral, 3 positive, 4 very positive
-new_df$title_sentiment[new_df$title_sentiment < 1] = 0
-new_df$title_sentiment[new_df$title_sentiment > 3] = 4
-new_df$title_sentiment[new_df$title_sentiment < 2 & new_df$title_sentiment > 0] = 1
-new_df$title_sentiment[new_df$title_sentiment < 3 & new_df$title_sentiment > 1] = 2
-new_df$title_sentiment[new_df$title_sentiment < 4 & new_df$title_sentiment > 2] = 3
-##new_df$title_sentiment <- as.factor(new_df$title_sentiment)
-new_df$para1_sentiment[new_df$para1_sentiment < 1] = 0
-new_df$para1_sentiment[new_df$para1_sentiment > 3] = 4
-new_df$para1_sentiment[new_df$para1_sentiment < 2 & new_df$para1_sentiment > 0] = 1
-new_df$para1_sentiment[new_df$para1_sentiment < 3 & new_df$para1_sentiment > 1] = 2
-new_df$para1_sentiment[new_df$para1_sentiment < 4 & new_df$para1_sentiment > 2] = 3
-##new_df$para1_sentiment <- as.factor(new_df$para1_sentiment)
-new_df$para2_sentiment[new_df$para2_sentiment < 1] = 0
-new_df$para2_sentiment[new_df$para2_sentiment > 3] = 4
-new_df$para2_sentiment[new_df$para2_sentiment < 2 & new_df$para2_sentiment > 0] = 1
-new_df$para2_sentiment[new_df$para2_sentiment < 3 & new_df$para2_sentiment > 1] = 2
-new_df$para2_sentiment[new_df$para2_sentiment < 4 & new_df$para2_sentiment > 2] = 3
-##new_df$para2_sentiment <- as.factor(new_df$para2_sentiment)
-new_df$para3_sentiment[new_df$para3_sentiment < 1] = 0
-new_df$para3_sentiment[new_df$para3_sentiment > 3] = 4
-new_df$para3_sentiment[new_df$para3_sentiment < 2 & new_df$para3_sentiment > 0] = 1
-new_df$para3_sentiment[new_df$para3_sentiment < 3 & new_df$para3_sentiment > 1] = 2
-new_df$para3_sentiment[new_df$para3_sentiment < 4 & new_df$para3_sentiment > 2] = 3
-##new_df$para3_sentiment <- as.factor(new_df$para3_sentiment)
-new_df$full_sentiment[new_df$full_sentiment < 1] = 0
-new_df$full_sentiment[new_df$full_sentiment > 3] = 4
-new_df$full_sentiment[new_df$full_sentiment < 2 & new_df$full_sentiment > 0] = 1
-new_df$full_sentiment[new_df$full_sentiment < 3 & new_df$full_sentiment > 1] = 2
-new_df$full_sentiment[new_df$full_sentiment < 4 & new_df$full_sentiment > 2] = 3
-
-##new_df$full_sentiment <- as.factor(new_df$full_sentiment)
 
 ## Split data into test and train
 ## 60% train, 40% test
@@ -98,9 +62,11 @@ testing_df = subset(new_df,split==FALSE)
 model1 <- glm(shares ~ title_sentiment + para1_sentiment + para2_sentiment 
               + para3_sentiment + full_sentiment,family=binomial(link='logit'),data=training_df)
 summary(model1)
-model2 <- glm(shares ~ title_sentiment + para1_sentiment + num_imgs
+model2 <- glm(shares ~ title_sentiment + para1_sentiment
                 ,family=binomial(link='logit'),data=training_df)
 summary(model2)
+## Add article category/channels and image features, 
+## found that title_sentiment is not significant
 model3 <- glm(shares ~ weekday_is_monday + weekday_is_tuesday + weekday_is_wednesday 
                + weekday_is_thursday + weekday_is_friday + weekday_is_saturday 
                + data_channel_is_entertainment + data_channel_is_bus 
