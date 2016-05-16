@@ -109,6 +109,8 @@ model3 <- glm(shares ~ weekday_is_monday + weekday_is_tuesday + weekday_is_wedne
               + para1_sentiment,
                family=binomial(link='logit'),data=training_df)
 summary(model3)
+## Look at the coefficients confidence interval
+round(exp(cbind(Estimate=coef(model3),confint(model3))),2)
 
 ## Predict model 1
 p_model1 <- predict(model1, type="response")
