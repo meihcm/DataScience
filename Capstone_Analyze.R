@@ -25,23 +25,21 @@ popular_share_threshold = 1401
 
 new_df <- read.table("mashable_engineered.tbl", header=TRUE, sep='^', na.strings="NA")
 
-## Change fields from factor to character classes
-new_df$title <- as.character(new_df$title)
-new_df$para1 <- as.character(new_df$para1)
-new_df$para2 <- as.character(new_df$para2)
-new_df$para3 <- as.character(new_df$para3)
-
 ## Treat NA in sentiment by using mean value
-summary(new_df$para3_sentiment) ## Using mean of 1.378
-new_df$para3_sentiment[is.na(new_df$para3_sentiment)] = 1.378
-summary(new_df$para3_sentiment) ## Using mean of 1.347
-new_df$para2_sentiment[is.na(new_df$para2_sentiment)] = 1.347
-summary(new_df$para3_sentiment) ## Using mean of 1.395
-new_df$para1_sentiment[is.na(new_df$para1_sentiment)] = 1.395
-summary(new_df$title_sentiment) ## Using mean of 1.453
-new_df$title_sentiment[is.na(new_df$title_sentiment)] = 1.453
-summary(new_df$full_sentiment) ## Using mean of 1.462
-new_df$full_sentiment[is.na(new_df$full_sentiment)] = 1.462
+new_df$para3_sentiment[is.na(new_df$para3_sentiment)] = mean(new_df$para3_sentiment, na.rm=TRUE)
+new_df$para2_sentiment[is.na(new_df$para2_sentiment)] = mean(new_df$para2_sentiment, na.rm=TRUE)
+new_df$para1_sentiment[is.na(new_df$para1_sentiment)] = mean(new_df$para1_sentiment, na.rm=TRUE)
+new_df$title_sentiment[is.na(new_df$title_sentiment)] = mean(new_df$title_sentiment, na.rm=TRUE)
+new_df$full_sentiment[is.na(new_df$full_sentiment)] = mean(new_df$full_sentiment, na.rm=TRUE)
+
+## Boost sentiment based on top-down user reading
+## So title_sentiment = title_sentiment x 4, and para1_sentiment = para1_sentiment X 3 and so on...
+new_df$title_sentiment = new_df$title_sentiment * 4
+new_df$para1_sentiment = new_df$para1_sentiment * 3
+new_df$para2_sentiment = new_df$para2_sentiment * 2
+new_df$para3_sentiment = new_df$para3_sentiment * 1
+new_df$full_sentiment = new_df$full_sentiment * mean(c(4,3,2,1))
+
 
 ## convert Shares to 1 or 0 for popular or not
 ## We are taking the mean to be the split of 1 when it is higher than mean otherwise 0
