@@ -14,14 +14,26 @@ setwd(datasetHome)
 ## Original dataset is used to find a share threshold-value 'x' so that we're confortable
 ## as saying anything above x is popular and below x is not popular
 mashable_df <- read.table("OnlineNewsPopularity.csv", header=TRUE, sep=",", na.strings="NA")
-describe(mashable_df$shares)
+stat_desc.mashable_df = describe(mashable_df$shares)
+
+## Extra calculation to see what a normally distributed shares would look like
+## First remove right skewed
+stat_desc_log.mashable_df = describe(log(mashable_df$shares))## natural log
+three_sd_above_normal_dist.mashable_df = exp(stat_desc_log.mashable_df$mean) + 3 * exp(stat_desc_log.mashable_df$sd)
+mashable_df.normal_dist = subset(mashable_df, shares < three_sd_above_normal_dist.mashable_df)
+## Next remove left skewed
+stat_desc_normal_dist = describe(mashable_df.normal_dist$shares)
+three_sd_below_normal_dist.mashable_df = (stat_desc_normal_dist$mean) - 3 * (stat_desc_normal_dist$sd)
+mashable_df.normal_dist = subset(mashable_df.normal_dist, shares > three_sd_below_normal_dist.mashable_df)
+stat_desc_normal_dist = describe(mashable_df.normal_dist$shares)
+
 ## Original popularity if based on mean
 ## Anything greater than mean would have only been about 20%
-original_popularity_pct = nrow(mashable_df[mashable_df$shares >= 3395,]) / nrow(mashable_df)
+original_popularity_pct = nrow(mashable_df[mashable_df$shares >= round(stat_desc.mashable_df$mean),]) / nrow(mashable_df)
 ## Assign it to 1400 (the median) as it represents close to a 50/50 split
 ## Motivation is that we want a relax way to detect for popularity
-relaxed_popularity_pct = nrow(mashable_df[mashable_df$shares >= 1401,]) / nrow(mashable_df)
-popular_share_threshold = 1401
+relaxed_popularity_pct = nrow(mashable_df[mashable_df$shares >= round(stat_desc.mashable_df$median),]) / nrow(mashable_df)
+popular_share_threshold = stat_desc_normal_dist$mean
 
 new_df <- read.table("mashable_engineered.tbl", header=TRUE, sep='^', na.strings="NA")
 
@@ -39,20 +51,18 @@ new_df$para1_sentiment = new_df$para1_sentiment * 3
 new_df$para2_sentiment = new_df$para2_sentiment * 2
 new_df$para3_sentiment = new_df$para3_sentiment * 1
 new_df$full_sentiment = new_df$full_sentiment * mean(c(4,3,2,1))
-
-
 ## convert Shares to 1 or 0 for popular or not
 ## We are taking the mean to be the split of 1 when it is higher than mean otherwise 0
 ## describe(mashable_df$shares)
-nrow(new_df[new_df$shares > popular_share_threshold,])## 1401 seems to split 1 and 0 into half
+nrow(new_df[new_df$shares > popular_share_threshold,])
 new_df$shares[new_df$shares < popular_share_threshold] = 0
 new_df$shares[new_df$shares >= popular_share_threshold] = 1
 new_df$shares = as.factor(new_df$shares)
 
 ## Split data into test and train
-## 60% train, 40% test
+## 70% train, 30% test
 set.seed(88)
-split = sample.split(new_df$shares, SplitRatio=.6)
+split = sample.split(new_df$shares, SplitRatio=.7)
 training_df = subset(new_df,split==TRUE)
 testing_df = subset(new_df,split==FALSE)
 
@@ -69,8 +79,8 @@ model3 <- glm(shares ~ weekday_is_monday + weekday_is_tuesday + weekday_is_wedne
                + weekday_is_thursday + weekday_is_friday + weekday_is_saturday 
                + data_channel_is_entertainment + data_channel_is_bus 
                + data_channel_is_socmed + data_channel_is_world 
-               + num_imgs
-              + para1_sentiment,
+               + num_imgs +full_sentiment
+              ,
                family=binomial(link='logit'),data=training_df)
 summary(model3)
 ## Look at the coefficients confidence interval
