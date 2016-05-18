@@ -48,7 +48,10 @@ first_quantile_share_mean <- c(rep(round(stat_desc_normal_dist$mean), length(pre
 third_quantile_share_mean <- c(rep(round(stat_desc_normal_dist$mean), length(predict_vars)))
 
 run_tasks = data.frame(model_name, predict_vars, normal_dist_share_mean, first_quantile_share_mean, third_quantile_share_mean)
+pdf("test.pdf", width=11, height=8.5)
 grid.table(run_tasks)
+grid.table(run_tasks)
+dev.off()
 
 ## Treat NA in sentiment by using mean value
 new_df$para3_sentiment[is.na(new_df$para3_sentiment)] = mean(new_df$para3_sentiment, na.rm=TRUE)
