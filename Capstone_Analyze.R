@@ -6,6 +6,7 @@ library(ROCR)
 install.packages("caret")
 library(caret)
 library(caTools)
+library(gridExtra)
 projectHome <- paste("~/DataScience") ##"/Users/michaelchiem/DataScience"
 datasetHome <- paste(projectHome,"/OnlineNewsPopularity",sep="")
 setwd(datasetHome)
@@ -37,6 +38,18 @@ popular_share_threshold = stat_desc_normal_dist$mean
 
 new_df <- read.table("mashable_engineered.tbl", header=TRUE, sep='^', na.strings="NA")
 
+## These are models to run ##
+model_name <- c('a','b','c')
+predict_vars <- c('shares ~ full_sentiment', 
+                  'shares ~ title_sentiment', 
+                  'shares ~ full_sentiment')
+normal_dist_share_mean <- c(rep(round(stat_desc_normal_dist$mean), length(predict_vars)))
+first_quantile_share_mean <- c(rep(round(stat_desc_normal_dist$mean), length(predict_vars)))
+third_quantile_share_mean <- c(rep(round(stat_desc_normal_dist$mean), length(predict_vars)))
+
+run_tasks = data.frame(model_name, predict_vars, normal_dist_share_mean, first_quantile_share_mean, third_quantile_share_mean)
+grid.table(run_tasks)
+
 ## Treat NA in sentiment by using mean value
 new_df$para3_sentiment[is.na(new_df$para3_sentiment)] = mean(new_df$para3_sentiment, na.rm=TRUE)
 new_df$para2_sentiment[is.na(new_df$para2_sentiment)] = mean(new_df$para2_sentiment, na.rm=TRUE)
@@ -67,8 +80,7 @@ training_df = subset(new_df,split==TRUE)
 testing_df = subset(new_df,split==FALSE)
 
 ## Logistic model
-model1 <- glm(shares ~ title_sentiment + para1_sentiment + para2_sentiment 
-              + para3_sentiment + full_sentiment,family=binomial(link='logit'),data=training_df)
+model1 <- glm(x[2],family=binomial(link='logit'),data=training_df)
 summary(model1)
 model2 <- glm(shares ~ title_sentiment + para1_sentiment
                 ,family=binomial(link='logit'),data=training_df)
