@@ -10,7 +10,54 @@ library(gridExtra)
 projectHome <- paste("~/DataScience") ##"/Users/michaelchiem/DataScience"
 datasetHome <- paste(projectHome,"/OnlineNewsPopularity",sep="")
 setwd(datasetHome)
-
+## FUNCTIONS ##
+## This function uses stanford's nlp and sentiment analysis to get a mean sentiment score ##
+runAnalysis <- function(model_inputs, popular_share_inputs, original_df) {
+  size_of_results = nrow(model_inputs)
+  ## Looping all models for glm
+  for (loop_index in 1:size_of_results) 
+  {
+    this.model_name = model_inputs$model_name[loop_index]
+    this.model = model_inputs$predict_vars[loop_index]
+    print(paste("Running model",this.model_name, ":", this.model))
+    size_of_thresholds = nrow(popular_share_inputs)
+    for (inner_loop_index in 1: size_of_thresholds) 
+    {
+      ## convert Shares to 1 or 0 for popular or not
+      this.threshold_name = popular_share_inputs$share_name[inner_loop_index]
+      print(paste("Running threshold",this.threshold_name))
+      
+      this.threshold = popular_share_inputs$share_thresholds[inner_loop_index]
+      this_df = original_df ##
+      this_df$shares[this_df$shares < this.threshold] = 0
+      this_df$shares[this_df$shares >= this.threshold] = 1
+      this_df$shares = as.factor(this_df$shares)
+      ## Split data into test and train
+      ## 70% train, 30% test
+      set.seed(88)
+      split = sample.split(this_df$shares, SplitRatio=.7)
+      this_df.training_df = subset(this_df,split==TRUE)
+      this_df.testing_df = subset(this_df,split==FALSE)
+      ## Begin of analysis ##
+      ## Logistic model
+      this.model_glm <- glm(as.character(this.model),family=binomial(link='logit'),data=this_df.training_df)
+      summary(this.model_glm)
+      
+      ## Predict model
+      this.model_predict <- predict(this.model_glm, type="response")
+      this.model_prediction <- prediction(this.model_predict, this_df.training_df$shares)
+      this.model_performance <- performance(this.model_prediction, measure = "tpr", x.measure = "fpr")
+      plot(this.model_performance, colorize = TRUE, print.cutoffs.at=seq(0,1,.01),text.adj = c(-0.2,1.7))
+      ## AUC
+      this.model_auc <- performance(this.model_prediction, measure = "auc")
+      this.model_auc <- this.model_auc@y.values[[1]]
+      this.model_auc
+      print(paste("AUC", this.model_auc))
+    }
+  }
+}
+## END FUNCTIONS ##
+## BEGIN MAIN ##
 ## Read all data files ##
 ## Original dataset is used to find a share threshold-value 'x' so that we're confortable
 ## as saying anything above x is popular and below x is not popular
@@ -27,32 +74,16 @@ stat_desc_normal_dist = describe(mashable_df.normal_dist$shares)
 three_sd_below_normal_dist.mashable_df = (stat_desc_normal_dist$mean) - 3 * (stat_desc_normal_dist$sd)
 mashable_df.normal_dist = subset(mashable_df.normal_dist, shares > three_sd_below_normal_dist.mashable_df)
 stat_desc_normal_dist = describe(mashable_df.normal_dist$shares)
+mashable_df.quantiles = summary(mashable_df$shares)
 
-## Original popularity if based on mean
-## Anything greater than mean would have only been about 20%
-original_popularity_pct = nrow(mashable_df[mashable_df$shares >= round(stat_desc.mashable_df$mean),]) / nrow(mashable_df)
-## Assign it to 1400 (the median) as it represents close to a 50/50 split
-## Motivation is that we want a relax way to detect for popularity
-relaxed_popularity_pct = nrow(mashable_df[mashable_df$shares >= round(stat_desc.mashable_df$median),]) / nrow(mashable_df)
+## Use the normally distributed mean
+## Against original dataset
+popularity_pct.normal_dist_mean = nrow(mashable_df[mashable_df$shares >= round(stat_desc_normal_dist$mean),]) / nrow(mashable_df)
+popularity_pct.1st_Quantile = nrow(mashable_df[mashable_df$shares >= round(mashable_df.quantiles["1st Qu."]),]) / nrow(mashable_df)
+popularity_pct.3rd_Quantile = nrow(mashable_df[mashable_df$shares >= round(mashable_df.quantiles["3rd Qu."]),]) / nrow(mashable_df)
 popular_share_threshold = stat_desc_normal_dist$mean
 
 new_df <- read.table("mashable_engineered.tbl", header=TRUE, sep='^', na.strings="NA")
-
-## These are models to run ##
-model_name <- c('a','b','c')
-predict_vars <- c('shares ~ full_sentiment', 
-                  'shares ~ title_sentiment', 
-                  'shares ~ full_sentiment')
-normal_dist_share_mean <- c(rep(round(stat_desc_normal_dist$mean), length(predict_vars)))
-first_quantile_share_mean <- c(rep(round(stat_desc_normal_dist$mean), length(predict_vars)))
-third_quantile_share_mean <- c(rep(round(stat_desc_normal_dist$mean), length(predict_vars)))
-
-run_tasks = data.frame(model_name, predict_vars, normal_dist_share_mean, first_quantile_share_mean, third_quantile_share_mean)
-pdf("test.pdf", width=11, height=8.5)
-grid.table(run_tasks)
-grid.table(run_tasks)
-dev.off()
-
 ## Treat NA in sentiment by using mean value
 new_df$para3_sentiment[is.na(new_df$para3_sentiment)] = mean(new_df$para3_sentiment, na.rm=TRUE)
 new_df$para2_sentiment[is.na(new_df$para2_sentiment)] = mean(new_df$para2_sentiment, na.rm=TRUE)
@@ -60,82 +91,37 @@ new_df$para1_sentiment[is.na(new_df$para1_sentiment)] = mean(new_df$para1_sentim
 new_df$title_sentiment[is.na(new_df$title_sentiment)] = mean(new_df$title_sentiment, na.rm=TRUE)
 new_df$full_sentiment[is.na(new_df$full_sentiment)] = mean(new_df$full_sentiment, na.rm=TRUE)
 
-## Boost sentiment based on top-down user reading
+## Boost sentiment based on top-down user reading behavior
+## The higher the more weight
 ## So title_sentiment = title_sentiment x 4, and para1_sentiment = para1_sentiment X 3 and so on...
 new_df$title_sentiment = new_df$title_sentiment * 4
 new_df$para1_sentiment = new_df$para1_sentiment * 3
 new_df$para2_sentiment = new_df$para2_sentiment * 2
 new_df$para3_sentiment = new_df$para3_sentiment * 1
 new_df$full_sentiment = new_df$full_sentiment * mean(c(4,3,2,1))
-## convert Shares to 1 or 0 for popular or not
-## We are taking the mean to be the split of 1 when it is higher than mean otherwise 0
-## describe(mashable_df$shares)
-nrow(new_df[new_df$shares > popular_share_threshold,])
-new_df$shares[new_df$shares < popular_share_threshold] = 0
-new_df$shares[new_df$shares >= popular_share_threshold] = 1
-new_df$shares = as.factor(new_df$shares)
 
-## Split data into test and train
-## 70% train, 30% test
-set.seed(88)
-split = sample.split(new_df$shares, SplitRatio=.7)
-training_df = subset(new_df,split==TRUE)
-testing_df = subset(new_df,split==FALSE)
+## These are models to run ##
+model_name <- c('a','b','c')
+predict_vars <- c('shares ~ full_sentiment', 
+                  'shares ~ title_sentiment', 
+                  'shares ~ full_sentiment')
 
-## Logistic model
-model1 <- glm(x[2],family=binomial(link='logit'),data=training_df)
-summary(model1)
-model2 <- glm(shares ~ title_sentiment + para1_sentiment
-                ,family=binomial(link='logit'),data=training_df)
-summary(model2)
-## Add article category/channels and image features, 
-## found that title_sentiment is not significant
-model3 <- glm(shares ~ weekday_is_monday + weekday_is_tuesday + weekday_is_wednesday 
-               + weekday_is_thursday + weekday_is_friday + weekday_is_saturday 
-               + data_channel_is_entertainment + data_channel_is_bus 
-               + data_channel_is_socmed + data_channel_is_world 
-               + num_imgs +full_sentiment
-              ,
-               family=binomial(link='logit'),data=training_df)
-summary(model3)
-## Look at the coefficients confidence interval
-round(exp(cbind(Estimate=coef(model3),confint(model3))),2)
+model_inputs = data.frame(model_name, predict_vars)
+share_name <- c('normal_mean', 'first_quantile', 'third_quantile', 'median')
+share_thresholds = c(round(stat_desc_normal_dist$mean),
+                     round(mashable_df.quantiles["1st Qu."]),
+                     round(mashable_df.quantiles["3rd Qu."]),
+                     round(stat_desc.mashable_df$median))
+share_threshold_inputs = data.frame(share_name, share_thresholds)
 
-## Predict model 1
-p_model1 <- predict(model1, type="response")
-pr_model1 <- prediction(p_model1, training_df$shares)
-prf_model1 <- performance(pr_model1, measure = "tpr", x.measure = "fpr")
-plot(prf_model1, colorize = TRUE, print.cutoffs.at=seq(0,1,.01),text.adj = c(-0.2,1.7))
-## AUC
-auc_model1 <- performance(pr_model1, measure = "auc")
-auc_model1 <- auc_model1@y.values[[1]]
-auc_model1
+##pdf("test.pdf", width=11, height=8.5)
+##grid.table(run_tasks)
+##grid.table(run_tasks)
+##dev.off()
 
-## Predict model 2
-p_model2 <- predict(model2, type="response")
-## Small threshold will allow for larger 1 errors
-summary(p_model2)
-pr_model2 <- prediction(p_model2, training_df$shares)
-prf_model2 <- performance(pr_model2, "tpr", "fpr")
-plot(prf_model2, colorize = TRUE, print.cutoffs.at=seq(0,1,.01),text.adj = c(-0.2,1.7))
-## AUC
-auc_model2 <- performance(pr_model2, measure = "auc")
-auc_model2 <- auc_model2@y.values[[1]]
-auc_model2
-
-## Predict model 3
-p_model3 <- predict(model3, type="response")
-## Small threshold will allow for larger 1 errors
-summary(p_model3)
-pr_model3 <- prediction(p_model3, training_df$shares)
-prf_model3 <- performance(pr_model3, "tpr", "fpr")
-plot(prf_model3, colorize = TRUE, print.cutoffs.at=seq(0,1,.1),text.adj = c(-0.3,1.7))
-## AUC
-auc_model3 <- performance(pr_model3, measure = "auc")
-auc_model3 <- auc_model3@y.values[[1]]
-auc_model3
-
+## Begin of analysis ##
+runAnalysis(model_inputs, share_threshold_inputs, new_df)
 ## Comparison
 ## Baseline number of 1s in testing / all testing rows
-baseline_testing_df = nrow(testing_df[testing_df$shares==1,]) / nrow(testing_df)
-baseline_training_df = nrow(training_df[training_df$shares==1,]) / nrow(training_df)
+##baseline_testing_df = nrow(testing_df[testing_df$shares==1,]) / nrow(testing_df)
+##baseline_training_df = nrow(training_df[training_df$shares==1,]) / nrow(training_df)
