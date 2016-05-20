@@ -7,6 +7,9 @@ require("caret")
 library(caret)
 library(caTools)
 library(gridExtra)
+## Clear out all vars
+rm(list = ls())
+
 projectHome <- paste("~/DataScience") ##"/Users/michaelchiem/DataScience"
 datasetHome <- paste(projectHome,"/OnlineNewsPopularity",sep="")
 setwd(datasetHome)
@@ -34,7 +37,7 @@ runAnalysis <- function(model_inputs, popular_share_inputs, original_df, dataset
     {
       ## convert Shares to 1 or 0 for popular or not
       this.threshold_name = trimws(popular_share_inputs$share_name[inner_loop_index])
-      print(paste("Running threshold",this.threshold_name,sep=""))
+      print(paste("Running threshold: ",this.threshold_name,sep=""))
       
       this.threshold = trimws(popular_share_inputs$share_thresholds[inner_loop_index])
       this_df = original_df ##
@@ -58,7 +61,9 @@ runAnalysis <- function(model_inputs, popular_share_inputs, original_df, dataset
       this.model_predict <- predict(this.model_glm, type="response")
       this.model_prediction <- prediction(this.model_predict, this_df.training_df$shares)
       this.model_performance <- performance(this.model_prediction, measure = "tpr", x.measure = "fpr")
+      pdf(paste(this.model_name, "_", this.threshold_name, ".model_roc.pdf",sep=""), width=11, height=8.5)
       plot(this.model_performance, colorize = TRUE, print.cutoffs.at=seq(0,1,.01),text.adj = c(-0.2,1.7))
+      dev.off()   
       ## AUC
       this.model_auc <- performance(this.model_prediction, measure = "auc")
       this.model_auc <- this.model_auc@y.values[[1]]
@@ -101,40 +106,46 @@ if(!exists("new_df")) {
   new_df <- read.table("mashable_engineered.tbl", header=TRUE, sep='^', na.strings="NA")
   ## Subset to features and response we want
   new_df = subset(new_df, select=c(shares,num_imgs,num_videos,data_channel_is_lifestyle,data_channel_is_entertainment,data_channel_is_bus,data_channel_is_socmed,data_channel_is_tech,data_channel_is_world,weekday_is_monday,weekday_is_tuesday,weekday_is_wednesday,weekday_is_thursday,weekday_is_friday,weekday_is_saturday,weekday_is_sunday,is_weekend,title_sentiment,para1_sentiment,para2_sentiment,para3_sentiment,full_sentiment))
+  ## Treat NA in sentiment by using mean value
+  new_df$para3_sentiment[is.na(new_df$para3_sentiment)] = mean(new_df$para3_sentiment, na.rm=TRUE)
+  new_df$para2_sentiment[is.na(new_df$para2_sentiment)] = mean(new_df$para2_sentiment, na.rm=TRUE)
+  new_df$para1_sentiment[is.na(new_df$para1_sentiment)] = mean(new_df$para1_sentiment, na.rm=TRUE)
+  new_df$title_sentiment[is.na(new_df$title_sentiment)] = mean(new_df$title_sentiment, na.rm=TRUE)
+  new_df$full_sentiment[is.na(new_df$full_sentiment)] = mean(new_df$full_sentiment, na.rm=TRUE)
+  
+  ## Boost sentiment based on top-down user reading behavior
+  ## The higher the more weight
+  ## So title_sentiment = title_sentiment x 4, and para1_sentiment = para1_sentiment X 3 and so on...
+  new_df$title_sentiment = new_df$title_sentiment * 4
+  new_df$para1_sentiment = new_df$para1_sentiment * 3
+  new_df$para2_sentiment = new_df$para2_sentiment * 2
+  new_df$para3_sentiment = new_df$para3_sentiment * 1
+  ## Boost by average of sum of the weights above
+  new_df$full_sentiment = new_df$full_sentiment * mean(c(4,3,2,1))
+  
   ## Add columns for logs, add a minor decimal value to allow log to work
-  mashable_df$num_imgs.log = log(mashable_df$num_imgs + .0001)
-  mashable_df$num_videos.log = log(mashable_df$num_videos + .0001)
-  mashable_df$data_channel_is_lifestyle.log = log(mashable_df$data_channel_is_lifestyle + .0001)
-  mashable_df$data_channel_is_entertainment.log = log(mashable_df$data_channel_is_entertainment + .0001)
-  mashable_df$data_channel_is_bus.log = log(mashable_df$data_channel_is_bus + .0001)
-  mashable_df$data_channel_is_socmed.log = log(mashable_df$data_channel_is_socmed + .0001)
-  mashable_df$data_channel_is_tech.log = log(mashable_df$data_channel_is_tech + .0001)
-  mashable_df$data_channel_is_world.log = log(mashable_df$data_channel_is_world + .0001)
-  mashable_df$weekday_is_monday.log = log(mashable_df$weekday_is_monday + .0001)
-  mashable_df$weekday_is_tuesday.log = log(mashable_df$weekday_is_tuesday + .0001)
-  mashable_df$weekday_is_wednesday.log = log(mashable_df$weekday_is_wednesday + .0001)
-  mashable_df$weekday_is_thursday.log = log(mashable_df$weekday_is_thursday + .0001)
-  mashable_df$weekday_is_friday.log = log(mashable_df$weekday_is_friday + .0001)
-  mashable_df$weekday_is_saturday.log = log(mashable_df$weekday_is_saturday + .0001)
-  mashable_df$weekday_is_sunday.log = log(mashable_df$weekday_is_sunday + .0001)
-  mashable_df$is_weekend.log = log(mashable_df$is_weekend + .0001)
+  new_df$num_imgs.log = log(new_df$num_imgs + .0001)
+  new_df$num_videos.log = log(new_df$num_videos + .0001)
+  new_df$data_channel_is_lifestyle.log = log(new_df$data_channel_is_lifestyle + .0001)
+  new_df$data_channel_is_entertainment.log = log(new_df$data_channel_is_entertainment + .0001)
+  new_df$data_channel_is_bus.log = log(new_df$data_channel_is_bus + .0001)
+  new_df$data_channel_is_socmed.log = log(new_df$data_channel_is_socmed + .0001)
+  new_df$data_channel_is_tech.log = log(new_df$data_channel_is_tech + .0001)
+  new_df$data_channel_is_world.log = log(new_df$data_channel_is_world + .0001)
+  new_df$weekday_is_monday.log = log(new_df$weekday_is_monday + .0001)
+  new_df$weekday_is_tuesday.log = log(new_df$weekday_is_tuesday + .0001)
+  new_df$weekday_is_wednesday.log = log(new_df$weekday_is_wednesday + .0001)
+  new_df$weekday_is_thursday.log = log(new_df$weekday_is_thursday + .0001)
+  new_df$weekday_is_friday.log = log(new_df$weekday_is_friday + .0001)
+  new_df$weekday_is_saturday.log = log(new_df$weekday_is_saturday + .0001)
+  new_df$weekday_is_sunday.log = log(new_df$weekday_is_sunday + .0001)
+  new_df$is_weekend.log = log(new_df$is_weekend + .0001)
+  new_df$title_sentiment.log = log(new_df$title_sentiment + .0001)
+  new_df$para1_sentiment.log = log(new_df$para1_sentiment + .0001)
+  new_df$para2_sentiment.log = log(new_df$para2_sentiment + .0001)
+  new_df$para3_sentiment.log = log(new_df$para3_sentiment + .0001)
+  new_df$full_sentiment.log = log(new_df$full_sentiment + .0001)
 }
-## Treat NA in sentiment by using mean value
-new_df$para3_sentiment[is.na(new_df$para3_sentiment)] = mean(new_df$para3_sentiment, na.rm=TRUE)
-new_df$para2_sentiment[is.na(new_df$para2_sentiment)] = mean(new_df$para2_sentiment, na.rm=TRUE)
-new_df$para1_sentiment[is.na(new_df$para1_sentiment)] = mean(new_df$para1_sentiment, na.rm=TRUE)
-new_df$title_sentiment[is.na(new_df$title_sentiment)] = mean(new_df$title_sentiment, na.rm=TRUE)
-new_df$full_sentiment[is.na(new_df$full_sentiment)] = mean(new_df$full_sentiment, na.rm=TRUE)
-
-## Boost sentiment based on top-down user reading behavior
-## The higher the more weight
-## So title_sentiment = title_sentiment x 4, and para1_sentiment = para1_sentiment X 3 and so on...
-new_df$title_sentiment = new_df$title_sentiment * 4
-new_df$para1_sentiment = new_df$para1_sentiment * 3
-new_df$para2_sentiment = new_df$para2_sentiment * 2
-new_df$para3_sentiment = new_df$para3_sentiment * 1
-## Boost by average of sum of the weights above
-new_df$full_sentiment = new_df$full_sentiment * mean(c(4,3,2,1))
 
 ## These are models to run ##
 model_name <- c("full_model","full_model_log")
@@ -155,14 +166,6 @@ share_threshold_inputs = data.frame(share_name, share_thresholds)
 share_threshold_inputs$share_name = as.character(share_threshold_inputs$share_name)
 share_threshold_inputs$share_thresholds = as.numeric(share_threshold_inputs$share_thresholds)
 
-##pdf("test.pdf", width=11, height=8.5)
-##grid.table(run_tasks)
-##grid.table(run_tasks)
-##dev.off()
 print(summary(new_df$shares))
 ## Begin of analysis ##
 runAnalysis(model_inputs, share_threshold_inputs, new_df,datasetHome)
-## Comparison
-## Baseline number of 1s in testing / all testing rows
-##baseline_testing_df = nrow(testing_df[testing_df$shares==1,]) / nrow(testing_df)
-##baseline_training_df = nrow(training_df[training_df$shares==1,]) / nrow(training_df)
