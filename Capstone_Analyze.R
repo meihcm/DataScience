@@ -25,7 +25,7 @@ runAnalysis <- function(model_inputs, popular_share_inputs, original_df, dataset
   {
     this.model_name = trimws(model_inputs$model_name[loop_index])
     this.model = trimws(model_inputs$predict_vars[loop_index])
-    print(paste("Running model",this.model_name, ":", this.model,sep=""))
+    print(paste("Running model:",this.model_name, "-", this.model,sep=""))
     size_of_thresholds = nrow(popular_share_inputs)
     
     dir.create(paste(this.root_path,"/",this.model_name,sep=""))
@@ -74,6 +74,8 @@ runAnalysis <- function(model_inputs, popular_share_inputs, original_df, dataset
 ## as saying anything above x is popular and below x is not popular
 if(!exists("mashable_df")) {
   mashable_df <- read.table("OnlineNewsPopularity.csv", header=TRUE, sep=",", na.strings="NA")
+  ## Subset to features and response we want
+  mashable_df = subset(mashable_df, select=c(shares,num_imgs,num_videos,data_channel_is_lifestyle,data_channel_is_entertainment,data_channel_is_bus,data_channel_is_socmed,data_channel_is_tech,data_channel_is_world,weekday_is_monday,weekday_is_tuesday,weekday_is_wednesday,weekday_is_thursday,weekday_is_friday,weekday_is_saturday,weekday_is_sunday,is_weekend))
 }
 stat_desc.mashable_df = describe(mashable_df$shares)
 
@@ -97,6 +99,25 @@ popularity_pct.3rd_Quantile = nrow(mashable_df[mashable_df$shares >= round(masha
 popular_share_threshold = stat_desc_normal_dist$mean
 if(!exists("new_df")) {
   new_df <- read.table("mashable_engineered.tbl", header=TRUE, sep='^', na.strings="NA")
+  ## Subset to features and response we want
+  new_df = subset(new_df, select=c(shares,num_imgs,num_videos,data_channel_is_lifestyle,data_channel_is_entertainment,data_channel_is_bus,data_channel_is_socmed,data_channel_is_tech,data_channel_is_world,weekday_is_monday,weekday_is_tuesday,weekday_is_wednesday,weekday_is_thursday,weekday_is_friday,weekday_is_saturday,weekday_is_sunday,is_weekend,title_sentiment,para1_sentiment,para2_sentiment,para3_sentiment,full_sentiment))
+  ## Add columns for logs, add a minor decimal value to allow log to work
+  mashable_df$num_imgs.log = log(mashable_df$num_imgs + .0001)
+  mashable_df$num_videos.log = log(mashable_df$num_videos + .0001)
+  mashable_df$data_channel_is_lifestyle.log = log(mashable_df$data_channel_is_lifestyle + .0001)
+  mashable_df$data_channel_is_entertainment.log = log(mashable_df$data_channel_is_entertainment + .0001)
+  mashable_df$data_channel_is_bus.log = log(mashable_df$data_channel_is_bus + .0001)
+  mashable_df$data_channel_is_socmed.log = log(mashable_df$data_channel_is_socmed + .0001)
+  mashable_df$data_channel_is_tech.log = log(mashable_df$data_channel_is_tech + .0001)
+  mashable_df$data_channel_is_world.log = log(mashable_df$data_channel_is_world + .0001)
+  mashable_df$weekday_is_monday.log = log(mashable_df$weekday_is_monday + .0001)
+  mashable_df$weekday_is_tuesday.log = log(mashable_df$weekday_is_tuesday + .0001)
+  mashable_df$weekday_is_wednesday.log = log(mashable_df$weekday_is_wednesday + .0001)
+  mashable_df$weekday_is_thursday.log = log(mashable_df$weekday_is_thursday + .0001)
+  mashable_df$weekday_is_friday.log = log(mashable_df$weekday_is_friday + .0001)
+  mashable_df$weekday_is_saturday.log = log(mashable_df$weekday_is_saturday + .0001)
+  mashable_df$weekday_is_sunday.log = log(mashable_df$weekday_is_sunday + .0001)
+  mashable_df$is_weekend.log = log(mashable_df$is_weekend + .0001)
 }
 ## Treat NA in sentiment by using mean value
 new_df$para3_sentiment[is.na(new_df$para3_sentiment)] = mean(new_df$para3_sentiment, na.rm=TRUE)
@@ -116,10 +137,10 @@ new_df$para3_sentiment = new_df$para3_sentiment * 1
 new_df$full_sentiment = new_df$full_sentiment * mean(c(4,3,2,1))
 
 ## These are models to run ##
-model_name <- c("full_sentiment","def","gha")
-predict_vars <- c('shares ~ full_sentiment', 
-                  'shares ~ title_sentiment', 
-                  'shares ~ full_sentiment')
+model_name <- c("full_model","full_model_log")
+predict_vars <- c('shares ~ num_imgs + num_videos + data_channel_is_lifestyle + data_channel_is_entertainment + data_channel_is_bus + data_channel_is_socmed + data_channel_is_tech + data_channel_is_world + weekday_is_monday + weekday_is_tuesday + weekday_is_wednesday + weekday_is_thursday + weekday_is_friday + weekday_is_saturday + weekday_is_sunday + is_weekend + title_sentiment + para1_sentiment + para2_sentiment + para3_sentiment + full_sentiment', 
+                  'shares ~ num_imgs.log + num_videos.log + data_channel_is_lifestyle.log + data_channel_is_entertainment.log + data_channel_is_bus.log + data_channel_is_socmed.log + data_channel_is_tech.log + data_channel_is_world.log + weekday_is_monday.log + weekday_is_tuesday.log + weekday_is_wednesday.log + weekday_is_thursday.log + weekday_is_friday.log + weekday_is_saturday.log + weekday_is_sunday.log + is_weekend.log + title_sentiment.log + para1_sentiment.log + para2_sentiment.log + para3_sentiment.log + full_sentiment.log' 
+                  )
 
 model_inputs = data.frame(model_name, predict_vars)
 model_inputs$model_name = as.character(model_inputs$model_name)
