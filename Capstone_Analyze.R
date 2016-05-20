@@ -41,8 +41,8 @@ runAnalysis <- function(model_inputs, popular_share_inputs, original_df, dataset
       
       this.threshold = trimws(popular_share_inputs$share_thresholds[inner_loop_index])
       this_df = original_df ##
-      this_df$shares[this_df$shares < this.threshold] = 0
-      this_df$shares[this_df$shares >= this.threshold] = 1
+      this_df$shares[this_df$shares < strtoi(this.threshold)] = 0
+      this_df$shares[this_df$shares >= strtoi(this.threshold)] = 1
       this_df$shares = as.factor(this_df$shares)
       ## Split data into test and train
       ## 70% train, 30% test
@@ -54,6 +54,8 @@ runAnalysis <- function(model_inputs, popular_share_inputs, original_df, dataset
       ## Logistic model
       this.model_glm <- glm(as.character(this.model),family=binomial(link='logit'),data=this_df.training_df)
       sink(paste(this.model_name, "_", this.threshold_name, ".model_summary.txt",sep=""))
+      print(paste("Threshold: ", this.threshold_name, " (", this.threshold,") - number of popular articles: ",nrow(this_df.training_df[this_df.training_df$shares == 1,]), ", number of total articles: ", nrow(this_df.training_df),sep=""))
+      print("=============================================================================================")
       print(paste("Using this.model:", this.model, sep=""))
       print(summary(this.model_glm))
       sink()
