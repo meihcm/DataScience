@@ -1,14 +1,29 @@
+if("dplyr" %in% rownames(installed.packages()) == FALSE) {
+  install.packages("dplyr")
+}
 library(dplyr)
-require("psych")
+if("psych" %in% rownames(installed.packages()) == FALSE) {
+  install.packages("psych")
+}
 library(psych)
-require("ROCR")
+if("ROCR" %in% rownames(installed.packages()) == FALSE) {
+  install.packages("ROCR")
+}
 library(ROCR)
-require("caret")
+if("caret" %in% rownames(installed.packages()) == FALSE) {
+  install.packages("caret")
+}
 library(caret)
+if("caTools" %in% rownames(installed.packages()) == FALSE) {
+  install.packages("caTools")
+}
 library(caTools)
+if("gridExtra" %in% rownames(installed.packages()) == FALSE) {
+  install.packages("caTools")
+}
 library(gridExtra)
 ## Clear out all vars
-rm(list = ls())
+##rm(list = ls())
 
 projectHome <- paste("~/DataScience") ##"/Users/michaelchiem/DataScience"
 datasetHome <- paste(projectHome,"/OnlineNewsPopularity",sep="")
@@ -53,24 +68,55 @@ runAnalysis <- function(model_inputs, popular_share_inputs, original_df, dataset
       ## Begin of analysis ##
       ## Logistic model
       this.model_glm <- glm(as.character(this.model),family=binomial(link='logit'),data=this_df.training_df)
-      sink(paste(this.model_name, "_", this.threshold_name, ".model_summary.txt",sep=""))
-      print(paste("Threshold: ", this.threshold_name, " (", this.threshold,") - number of popular articles: ",nrow(this_df.training_df[this_df.training_df$shares == 1,]), ", number of total articles: ", nrow(this_df.training_df),sep=""))
-      print("=============================================================================================")
-      print(paste("Using this.model:", this.model, sep=""))
-      print(summary(this.model_glm))
-      sink()
       ## Predict model
       this.model_predict <- predict(this.model_glm, type="response")
       this.model_prediction <- prediction(this.model_predict, this_df.training_df$shares)
       this.model_performance <- performance(this.model_prediction, measure = "tpr", x.measure = "fpr")
+      ## Confusion table      
+      this.predicted_training_popularity = rep(1, nrow(this_df.training_df))
+      this.predicted_training_popularity[this.model_predict <=.50] = 0
+      ## Prediction are rows, truth are columns
+      this.predicted_training_confusion_table = table(this.predicted_training_popularity, this_df.training_df$shares)
+      
+      ## Calculate Recall, Precision, F1 Score
+      true_positive = this.predicted_training_confusion_table[1,1]
+      false_negative = this.predicted_training_confusion_table[1,2]
+      false_positive = 0
+      true_negative = 0
+      if(nrow(this.predicted_training_confusion_table) > 1) {
+        false_positive = this.predicted_training_confusion_table[2,1]
+        true_negative = this.predicted_training_confusion_table[2,2]
+      }
+      ## tp / (tp + fn)
+      this.predicted_training_recall = (true_positive/(true_positive + false_negative))
+      ## tp / (tp + fp)
+      this.predicted_training_precision = (true_positive/(true_positive + false_positive))
+      this.predicted_training_f1score = 2 * this.predicted_training_precision * this.predicted_training_recall/ (this.predicted_training_recall + this.predicted_training_precision)
+
       pdf(paste(this.model_name, "_", this.threshold_name, ".model_roc.pdf",sep=""), width=11, height=8.5)
-      plot(this.model_performance, colorize = TRUE, print.cutoffs.at=seq(0,1,.01),text.adj = c(-0.2,1.7))
+      plot(this.model_performance, colorize = TRUE, print.cutoffs.at=seq(0,1,.1),text.adj = c(-0.2,1.7))
       dev.off()   
       ## AUC
       this.model_auc <- performance(this.model_prediction, measure = "auc")
       this.model_auc <- this.model_auc@y.values[[1]]
       this.model_auc
+      
+      ## Output results
+      sink(paste(this.model_name, "_", this.threshold_name, ".model_summary.txt",sep=""))
+      print(paste("Threshold: ", this.threshold_name, " (", this.threshold,") - number of popular articles: ",nrow(this_df.training_df[this_df.training_df$shares == 1,]), ", number of total articles: ", nrow(this_df.training_df),sep=""))
+      print("=============================================================================================")
+      print(paste("Using this.model:", this.model, sep=""))
+      print(summary(this.model_glm))
+      print("=============================================================================================")
       print(paste("AUC:", this.model_auc,sep=""))
+      print("")
+      print("CONFUSION TABLE: (Rows are prediction, Truth are columns)")
+      print(this.predicted_training_confusion_table)
+      print("")
+      print(paste("Recall (Correctly Predicted Popular / Actual Popular): ", this.predicted_training_recall), sep="")
+      print(paste("Precision (Correctly Predicted Popular / All Predicted Popular): ", this.predicted_training_precision), sep="")
+      print(paste("F1-Score: ", this.predicted_training_f1score), sep="")
+      sink()
     }
   }
 }
@@ -150,9 +196,11 @@ if(!exists("new_df")) {
 }
 
 ## These are models to run ##
-model_name <- c("full_model","full_model_log")
-predict_vars <- c('shares ~ num_imgs + num_videos + data_channel_is_lifestyle + data_channel_is_entertainment + data_channel_is_bus + data_channel_is_socmed + data_channel_is_tech + data_channel_is_world + weekday_is_monday + weekday_is_tuesday + weekday_is_wednesday + weekday_is_thursday + weekday_is_friday + weekday_is_saturday + weekday_is_sunday + is_weekend + title_sentiment + para1_sentiment + para2_sentiment + para3_sentiment + full_sentiment', 
-                  'shares ~ num_imgs.log + num_videos.log + data_channel_is_lifestyle.log + data_channel_is_entertainment.log + data_channel_is_bus.log + data_channel_is_socmed.log + data_channel_is_tech.log + data_channel_is_world.log + weekday_is_monday.log + weekday_is_tuesday.log + weekday_is_wednesday.log + weekday_is_thursday.log + weekday_is_friday.log + weekday_is_saturday.log + weekday_is_sunday.log + is_weekend.log + title_sentiment.log + para1_sentiment.log + para2_sentiment.log + para3_sentiment.log + full_sentiment.log' 
+model_name <- c("full_model","full_model_optimized","full_model_log", "full_model_log_optimized")
+predict_vars <- c('shares ~ num_imgs + num_videos + data_channel_is_lifestyle + data_channel_is_entertainment + data_channel_is_bus + data_channel_is_socmed + data_channel_is_tech + data_channel_is_world + weekday_is_monday + weekday_is_tuesday + weekday_is_wednesday + weekday_is_thursday + weekday_is_friday + weekday_is_saturday + weekday_is_sunday + is_weekend + title_sentiment + para1_sentiment + para2_sentiment + para3_sentiment + full_sentiment'
+                  ,'shares ~ num_imgs + num_videos + data_channel_is_lifestyle + data_channel_is_entertainment + data_channel_is_bus + data_channel_is_socmed + data_channel_is_tech + data_channel_is_world + weekday_is_monday + weekday_is_tuesday + weekday_is_wednesday + weekday_is_thursday + weekday_is_friday + para3_sentiment + full_sentiment'
+                  ,'shares ~ num_imgs.log + num_videos.log + data_channel_is_lifestyle.log + data_channel_is_entertainment.log + data_channel_is_bus.log + data_channel_is_socmed.log + data_channel_is_tech.log + data_channel_is_world.log + weekday_is_monday.log + weekday_is_tuesday.log + weekday_is_wednesday.log + weekday_is_thursday.log + weekday_is_friday.log + weekday_is_saturday.log + weekday_is_sunday.log + is_weekend.log + title_sentiment.log + para1_sentiment.log + para2_sentiment.log + para3_sentiment.log + full_sentiment.log' 
+                  ,'shares ~ num_imgs + num_videos + data_channel_is_lifestyle + data_channel_is_entertainment + data_channel_is_bus + data_channel_is_socmed + data_channel_is_tech + data_channel_is_world + weekday_is_monday + weekday_is_tuesday + weekday_is_wednesday + weekday_is_thursday + weekday_is_friday + full_sentiment'
                   )
 
 model_inputs = data.frame(model_name, predict_vars)
