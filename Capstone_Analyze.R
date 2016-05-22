@@ -188,10 +188,10 @@ stat_desc.mashable_df = describe(mashable_df$shares)
 ## Extra calculation to see what a normally distributed shares would look like
 ## First remove right skewed
 stat_desc_log.mashable_df = describe(log(mashable_df$shares))## natural log
-three_sd_above_normal_dist.mashable_df = exp(stat_desc_log.mashable_df$mean) + 3 * exp(stat_desc_log.mashable_df$sd)
+three_sd_above_normal_dist.mashable_df = exp((stat_desc_log.mashable_df$mean)) + (3 * exp((stat_desc_log.mashable_df$sd)))
 mashable_df.normal_dist = subset(mashable_df, shares < three_sd_above_normal_dist.mashable_df)
 ## Next remove left skewed
-stat_desc_normal_dist = describe(mashable_df.normal_dist$shares)
+stat_desc_normal_dist = describe((mashable_df.normal_dist$shares))
 three_sd_below_normal_dist.mashable_df = (stat_desc_normal_dist$mean) - 3 * (stat_desc_normal_dist$sd)
 mashable_df.normal_dist = subset(mashable_df.normal_dist, shares > three_sd_below_normal_dist.mashable_df)
 stat_desc_normal_dist = describe(mashable_df.normal_dist$shares)
