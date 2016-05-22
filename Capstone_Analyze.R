@@ -50,6 +50,7 @@ runAnalysis <- function(model_inputs, popular_share_inputs, original_df, dataset
                                        recall=rep("", size_of_thresholds),
                                        precision=rep("", size_of_thresholds),
                                        fscore=rep("", size_of_thresholds),
+                                       accuracy=rep("", size_of_thresholds),
                                        stringsAsFactors=FALSE)
   iteration_counter = 0
   ## Looping all models for glm
@@ -90,24 +91,31 @@ runAnalysis <- function(model_inputs, popular_share_inputs, original_df, dataset
       ## Confusion table      
       this.predicted_training_popularity = rep(1, nrow(this_df.training_df))
       this.predicted_training_popularity[this.model_predict <=.50] = 0
+      ## Add only one 0 so that confusion matrix is not unbalanced
+      if(sum(this.predicted_training_popularity)/nrow(this_df.training_df) == 1)
+      {
+        this.predicted_training_popularity[1] = 0
+      }  
       ## Prediction are rows, truth are columns
       this.predicted_training_confusion_table = table(this.predicted_training_popularity,this_df.training_df$shares)
       
       ## Calculate Recall, Precision, F1 Score
-      true_positive = this.predicted_training_confusion_table[1,1]
+      true_negative = this.predicted_training_confusion_table[1,1]
       false_negative = this.predicted_training_confusion_table[1,2]
-      true_negative = 0
+      true_positive = 0
       false_positive = 0
       if(nrow(this.predicted_training_confusion_table) > 1) {
         false_positive = this.predicted_training_confusion_table[2,1]
-        true_negative = this.predicted_training_confusion_table[2,2]
+        true_positive = this.predicted_training_confusion_table[2,2]
       }
       ## tp / (tp + fn)
       this.predicted_training_recall = (true_positive/(true_positive + false_negative))
       ## tp / (tp + fp)
       this.predicted_training_precision = (true_positive/(true_positive + false_positive))
       this.predicted_training_f1score = 2 * this.predicted_training_precision * this.predicted_training_recall/ (this.predicted_training_recall + this.predicted_training_precision)
-
+      ## (tp+tn)/(tp+tn+fp+fn)
+      this.predicted_training_accuracy = (true_positive + true_negative)/(true_positive + true_negative + false_positive + false_negative)
+        
       pdf(paste(this.model_name, "_", this.threshold_name, ".model_roc.pdf",sep=""), width=11, height=8.5)
       plot(this.model_performance, colorize = TRUE, print.cutoffs.at=seq(0,1,.1),text.adj = c(-0.2,1.7))
       dev.off()   
@@ -144,6 +152,7 @@ runAnalysis <- function(model_inputs, popular_share_inputs, original_df, dataset
       compare_analysis_table[iteration_counter,9] = this.predicted_training_recall
       compare_analysis_table[iteration_counter,10] = this.predicted_training_precision
       compare_analysis_table[iteration_counter,11] = this.predicted_training_f1score
+      compare_analysis_table[iteration_counter,12] = this.predicted_training_accuracy
     }
   }
   ## Make certain feature numerics
@@ -155,6 +164,7 @@ runAnalysis <- function(model_inputs, popular_share_inputs, original_df, dataset
   compare_analysis_table$fscore=as.numeric(compare_analysis_table$fscore)
   compare_analysis_table$actual_popular_count = as.numeric(compare_analysis_table$actual_popular_count)
   compare_analysis_table$population_size = as.numeric(compare_analysis_table$population_size)
+  compare_analysis_table$accuracy = as.numeric(compare_analysis_table$accuracy)
   
   setwd(this.root_path)
   sink("performance_summary.txt")
