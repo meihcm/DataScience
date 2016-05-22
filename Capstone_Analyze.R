@@ -91,13 +91,13 @@ runAnalysis <- function(model_inputs, popular_share_inputs, original_df, dataset
       this.predicted_training_popularity = rep(1, nrow(this_df.training_df))
       this.predicted_training_popularity[this.model_predict <=.50] = 0
       ## Prediction are rows, truth are columns
-      this.predicted_training_confusion_table = table(this.predicted_training_popularity, this_df.training_df$shares)
+      this.predicted_training_confusion_table = table(this.predicted_training_popularity,this_df.training_df$shares)
       
       ## Calculate Recall, Precision, F1 Score
       true_positive = this.predicted_training_confusion_table[1,1]
       false_negative = this.predicted_training_confusion_table[1,2]
-      false_positive = 0
       true_negative = 0
+      false_positive = 0
       if(nrow(this.predicted_training_confusion_table) > 1) {
         false_positive = this.predicted_training_confusion_table[2,1]
         true_negative = this.predicted_training_confusion_table[2,2]
@@ -125,7 +125,7 @@ runAnalysis <- function(model_inputs, popular_share_inputs, original_df, dataset
       print("=============================================================================================")
       print(paste("AUC:", this.model_auc,sep=""))
       print("")
-      print("CONFUSION TABLE: (Rows are prediction, Truth are columns)")
+      print("CONFUSION TABLE: (Prediction are rows, Truth are columns)")
       print(this.predicted_training_confusion_table)
       print("")
       print(paste("Recall (Correctly Predicted Popular / Actual Popular): ", this.predicted_training_recall), sep="")
