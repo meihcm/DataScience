@@ -38,18 +38,32 @@ runAnalysis <- function(model_inputs, popular_share_inputs, original_df, dataset
   ## Recreate outputs dir
   dir.create(this.root_path)
   size_of_results = nrow(model_inputs)
+  size_of_thresholds = nrow(popular_share_inputs)
+  compare_analysis_table <- data.frame(model=rep("", size_of_thresholds), 
+                                       glm_model=rep("", size_of_thresholds),
+                                       threshold=rep("", size_of_thresholds),
+                                       threshold_value=rep("", size_of_thresholds),
+                                       actual_popular_count=rep("", size_of_thresholds),
+                                       population_size=rep("", size_of_thresholds),
+                                       aic=rep("", size_of_thresholds),
+                                       auc=rep("", size_of_thresholds),
+                                       recall=rep("", size_of_thresholds),
+                                       precision=rep("", size_of_thresholds),
+                                       fscore=rep("", size_of_thresholds),
+                                       stringsAsFactors=FALSE)
+  iteration_counter = 0
   ## Looping all models for glm
   for (loop_index in 1:size_of_results) 
   {
     this.model_name = trimws(model_inputs$model_name[loop_index])
     this.model = trimws(model_inputs$predict_vars[loop_index])
     print(paste("Running model:",this.model_name, "-", this.model,sep=""))
-    size_of_thresholds = nrow(popular_share_inputs)
     
     dir.create(paste(this.root_path,"/",this.model_name,sep=""))
     setwd(paste(this.root_path,"/",this.model_name,sep=""))
     for (inner_loop_index in 1: size_of_thresholds) 
     {
+      iteration_counter = iteration_counter + 1
       ## convert Shares to 1 or 0 for popular or not
       this.threshold_name = trimws(popular_share_inputs$share_name[inner_loop_index])
       print(paste("Running threshold: ",this.threshold_name,sep=""))
@@ -68,6 +82,7 @@ runAnalysis <- function(model_inputs, popular_share_inputs, original_df, dataset
       ## Begin of analysis ##
       ## Logistic model
       this.model_glm <- glm(as.character(this.model),family=binomial(link='logit'),data=this_df.training_df)
+      this.model_aic <- AIC(this.model_glm)
       ## Predict model
       this.model_predict <- predict(this.model_glm, type="response")
       this.model_prediction <- prediction(this.model_predict, this_df.training_df$shares)
@@ -117,8 +132,36 @@ runAnalysis <- function(model_inputs, popular_share_inputs, original_df, dataset
       print(paste("Precision (Correctly Predicted Popular / All Predicted Popular): ", this.predicted_training_precision), sep="")
       print(paste("F1-Score: ", this.predicted_training_f1score), sep="")
       sink()
+      ## Save the result in a summary data frame
+      compare_analysis_table[iteration_counter,1] = this.model_name
+      compare_analysis_table[iteration_counter,2] = this.model
+      compare_analysis_table[iteration_counter,3] = this.threshold_name
+      compare_analysis_table[iteration_counter,4] = this.threshold
+      compare_analysis_table[iteration_counter,5] = nrow(this_df.training_df[this_df.training_df$shares == 1,])
+      compare_analysis_table[iteration_counter,6] = nrow(this_df.training_df)
+      compare_analysis_table[iteration_counter,7] = this.model_aic
+      compare_analysis_table[iteration_counter,8] = this.model_auc
+      compare_analysis_table[iteration_counter,9] = this.predicted_training_recall
+      compare_analysis_table[iteration_counter,10] = this.predicted_training_precision
+      compare_analysis_table[iteration_counter,11] = this.predicted_training_f1score
     }
   }
+  ## Make certain feature numerics
+  compare_analysis_table$threshold_value=as.numeric(compare_analysis_table$threshold_value)
+  compare_analysis_table$aic=as.numeric(compare_analysis_table$aic)
+  compare_analysis_table$auc=as.numeric(compare_analysis_table$auc)
+  compare_analysis_table$recall=as.numeric(compare_analysis_table$recall)
+  compare_analysis_table$precision=as.numeric(compare_analysis_table$precision)
+  compare_analysis_table$fscore=as.numeric(compare_analysis_table$fscore)
+  compare_analysis_table$actual_popular_count = as.numeric(compare_analysis_table$actual_popular_count)
+  compare_analysis_table$population_size = as.numeric(compare_analysis_table$population_size)
+  
+  setwd(this.root_path)
+  sink("performance_summary.txt")
+  print(compare_analysis_table)
+  sink()
+  
+  return (compare_analysis_table)
 }
 ## END FUNCTIONS ##
 ## BEGIN MAIN ##
@@ -200,7 +243,7 @@ model_name <- c("full_model","full_model_optimized","full_model_log", "full_mode
 predict_vars <- c('shares ~ num_imgs + num_videos + data_channel_is_lifestyle + data_channel_is_entertainment + data_channel_is_bus + data_channel_is_socmed + data_channel_is_tech + data_channel_is_world + weekday_is_monday + weekday_is_tuesday + weekday_is_wednesday + weekday_is_thursday + weekday_is_friday + weekday_is_saturday + weekday_is_sunday + is_weekend + title_sentiment + para1_sentiment + para2_sentiment + para3_sentiment + full_sentiment'
                   ,'shares ~ num_imgs + num_videos + data_channel_is_lifestyle + data_channel_is_entertainment + data_channel_is_bus + data_channel_is_socmed + data_channel_is_tech + data_channel_is_world + weekday_is_monday + weekday_is_tuesday + weekday_is_wednesday + weekday_is_thursday + weekday_is_friday + para3_sentiment + full_sentiment'
                   ,'shares ~ num_imgs.log + num_videos.log + data_channel_is_lifestyle.log + data_channel_is_entertainment.log + data_channel_is_bus.log + data_channel_is_socmed.log + data_channel_is_tech.log + data_channel_is_world.log + weekday_is_monday.log + weekday_is_tuesday.log + weekday_is_wednesday.log + weekday_is_thursday.log + weekday_is_friday.log + weekday_is_saturday.log + weekday_is_sunday.log + is_weekend.log + title_sentiment.log + para1_sentiment.log + para2_sentiment.log + para3_sentiment.log + full_sentiment.log' 
-                  ,'shares ~ num_imgs + num_videos + data_channel_is_lifestyle + data_channel_is_entertainment + data_channel_is_bus + data_channel_is_socmed + data_channel_is_tech + data_channel_is_world + weekday_is_monday + weekday_is_tuesday + weekday_is_wednesday + weekday_is_thursday + weekday_is_friday + full_sentiment'
+                  ,'shares ~ num_imgs.log + num_videos.log + data_channel_is_lifestyle.log + data_channel_is_entertainment.log + data_channel_is_bus.log + data_channel_is_socmed.log + data_channel_is_tech.log + data_channel_is_world.log + weekday_is_monday.log + weekday_is_tuesday.log + weekday_is_wednesday.log + weekday_is_thursday.log + weekday_is_friday.log + full_sentiment.log'
                   )
 
 model_inputs = data.frame(model_name, predict_vars)
@@ -218,4 +261,4 @@ share_threshold_inputs$share_thresholds = as.numeric(share_threshold_inputs$shar
 
 print(summary(new_df$shares))
 ## Begin of analysis ##
-runAnalysis(model_inputs, share_threshold_inputs, new_df,datasetHome)
+summary_df = runAnalysis(model_inputs, share_threshold_inputs, new_df,datasetHome)
