@@ -249,8 +249,27 @@ if(!exists("new_df")) {
 }
 
 ## These are models to run ##
-model_name <- c("full_model","full_model_optimized","full_model_log", "full_model_log_optimized")
-predict_vars <- c('shares ~ num_imgs + num_videos + data_channel_is_lifestyle + data_channel_is_entertainment + data_channel_is_bus + data_channel_is_socmed + data_channel_is_tech + data_channel_is_world + weekday_is_monday + weekday_is_tuesday + weekday_is_wednesday + weekday_is_thursday + weekday_is_friday + weekday_is_saturday + weekday_is_sunday + is_weekend + title_sentiment + para1_sentiment + para2_sentiment + para3_sentiment + full_sentiment'
+model_name <- c(
+                "original_full_model"
+                ,"original_full_model_optimized"
+                ,"original_full_model_log"
+                ,"original_full_model_log_optimized"
+                ,"sentiment_model"
+                ,"sentiment_model_optimized"
+                ,"sentiment_model_log"
+                ,"full_combined_model"
+                ,"full_combined_model_optimized"
+                ,"full_combined_model_log"
+                , "full_combined_model_log_optimized"
+                )
+predict_vars <- c('shares ~ num_imgs + num_videos + data_channel_is_lifestyle + data_channel_is_entertainment + data_channel_is_bus + data_channel_is_socmed + data_channel_is_tech + data_channel_is_world + weekday_is_monday + weekday_is_tuesday + weekday_is_wednesday + weekday_is_thursday + weekday_is_friday + weekday_is_saturday + weekday_is_sunday + is_weekend'
+                  ,'shares ~ num_imgs + num_videos + data_channel_is_lifestyle + data_channel_is_entertainment + data_channel_is_bus + data_channel_is_socmed + data_channel_is_tech + data_channel_is_world + weekday_is_monday + weekday_is_tuesday + weekday_is_wednesday + weekday_is_thursday + weekday_is_friday'
+                  ,'shares ~ num_imgs.log + num_videos.log + data_channel_is_lifestyle.log + data_channel_is_entertainment.log + data_channel_is_bus.log + data_channel_is_socmed.log + data_channel_is_tech.log + data_channel_is_world.log + weekday_is_monday.log + weekday_is_tuesday.log + weekday_is_wednesday.log + weekday_is_thursday.log + weekday_is_friday.log + weekday_is_saturday.log + weekday_is_sunday.log + is_weekend.log'
+                  ,'shares ~ num_imgs.log + num_videos.log + data_channel_is_lifestyle.log + data_channel_is_entertainment.log + data_channel_is_bus.log + data_channel_is_socmed.log + data_channel_is_tech.log + data_channel_is_world.log + weekday_is_monday.log + weekday_is_tuesday.log + weekday_is_wednesday.log + weekday_is_thursday.log + weekday_is_friday.log'
+                  ,'shares ~ title_sentiment + para1_sentiment + para2_sentiment + para3_sentiment + full_sentiment'
+                  ,'shares ~ title_sentiment + full_sentiment'
+                  ,'shares ~ title_sentiment.log + para1_sentiment.log + para2_sentiment.log + para3_sentiment.log + full_sentiment.log'
+                  ,'shares ~ num_imgs + num_videos + data_channel_is_lifestyle + data_channel_is_entertainment + data_channel_is_bus + data_channel_is_socmed + data_channel_is_tech + data_channel_is_world + weekday_is_monday + weekday_is_tuesday + weekday_is_wednesday + weekday_is_thursday + weekday_is_friday + weekday_is_saturday + weekday_is_sunday + is_weekend + title_sentiment + para1_sentiment + para2_sentiment + para3_sentiment + full_sentiment'
                   ,'shares ~ num_imgs + num_videos + data_channel_is_lifestyle + data_channel_is_entertainment + data_channel_is_bus + data_channel_is_socmed + data_channel_is_tech + data_channel_is_world + weekday_is_monday + weekday_is_tuesday + weekday_is_wednesday + weekday_is_thursday + weekday_is_friday + para3_sentiment + full_sentiment'
                   ,'shares ~ num_imgs.log + num_videos.log + data_channel_is_lifestyle.log + data_channel_is_entertainment.log + data_channel_is_bus.log + data_channel_is_socmed.log + data_channel_is_tech.log + data_channel_is_world.log + weekday_is_monday.log + weekday_is_tuesday.log + weekday_is_wednesday.log + weekday_is_thursday.log + weekday_is_friday.log + weekday_is_saturday.log + weekday_is_sunday.log + is_weekend.log + title_sentiment.log + para1_sentiment.log + para2_sentiment.log + para3_sentiment.log + full_sentiment.log' 
                   ,'shares ~ num_imgs.log + num_videos.log + data_channel_is_lifestyle.log + data_channel_is_entertainment.log + data_channel_is_bus.log + data_channel_is_socmed.log + data_channel_is_tech.log + data_channel_is_world.log + weekday_is_monday.log + weekday_is_tuesday.log + weekday_is_wednesday.log + weekday_is_thursday.log + weekday_is_friday.log + full_sentiment.log'
