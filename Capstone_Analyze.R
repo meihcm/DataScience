@@ -1,78 +1,206 @@
+if("dplyr" %in% rownames(installed.packages()) == FALSE) {
+  install.packages("dplyr")
+}
 library(dplyr)
-require("psych")
+if("psych" %in% rownames(installed.packages()) == FALSE) {
+  install.packages("psych")
+}
 library(psych)
-require("ROCR")
+if("ROCR" %in% rownames(installed.packages()) == FALSE) {
+  install.packages("ROCR")
+}
 library(ROCR)
-require("caret")
+if("caret" %in% rownames(installed.packages()) == FALSE) {
+  install.packages("caret")
+}
 library(caret)
+if("caTools" %in% rownames(installed.packages()) == FALSE) {
+  install.packages("caTools")
+}
 library(caTools)
+if("gridExtra" %in% rownames(installed.packages()) == FALSE) {
+  install.packages("caTools")
+}
 library(gridExtra)
 ## Clear out all vars
-rm(list = ls())
+##rm(list = ls())
 
 projectHome <- paste("~/DataScience") ##"/Users/michaelchiem/DataScience"
 datasetHome <- paste(projectHome,"/OnlineNewsPopularity",sep="")
 setwd(datasetHome)
 ## FUNCTIONS ##
 ## This function uses stanford's nlp and sentiment analysis to get a mean sentiment score ##
-runAnalysis <- function(model_inputs, popular_share_inputs, original_df, datasetHome) {
+runAnalysis <- function(model_inputs, popular_share_inputs, original_df, datasetHome, run_testing) {
   ## outputs directory
+  ## Determines if we need to rerun with testing as well
+  if(run_testing == FALSE) {
+    is_testing = FALSE
+    repeat_loop = 1
+  } else {
+    repeat_loop = 2
+  }
+  ## Init new output path
   this.root_path = paste(datasetHome,"/outputs",sep="")
   ## Delete outputs
   unlink(this.root_path, recursive=TRUE)
   ## Recreate outputs dir
   dir.create(this.root_path)
   size_of_results = nrow(model_inputs)
-  ## Looping all models for glm
-  for (loop_index in 1:size_of_results) 
+  size_of_thresholds = nrow(popular_share_inputs)
+  compare_analysis_table <- data.frame(model=rep("", size_of_thresholds), 
+                                       glm_model=rep("", size_of_thresholds),
+                                       threshold=rep("", size_of_thresholds),
+                                       threshold_value=rep("", size_of_thresholds),
+                                       actual_popular_count=rep("", size_of_thresholds),
+                                       population_size=rep("", size_of_thresholds),
+                                       aic=rep("", size_of_thresholds),
+                                       auc=rep("", size_of_thresholds),
+                                       recall=rep("", size_of_thresholds),
+                                       precision=rep("", size_of_thresholds),
+                                       fscore=rep("", size_of_thresholds),
+                                       accuracy=rep("", size_of_thresholds),
+                                       is_testing=rep("", size_of_thresholds),
+                                       stringsAsFactors=FALSE)
+  iteration_counter = 0
+  for(main_index in 1:repeat_loop)
   {
-    this.model_name = trimws(model_inputs$model_name[loop_index])
-    this.model = trimws(model_inputs$predict_vars[loop_index])
-    print(paste("Running model:",this.model_name, "-", this.model,sep=""))
-    size_of_thresholds = nrow(popular_share_inputs)
-    
-    dir.create(paste(this.root_path,"/",this.model_name,sep=""))
-    setwd(paste(this.root_path,"/",this.model_name,sep=""))
-    for (inner_loop_index in 1: size_of_thresholds) 
-    {
-      ## convert Shares to 1 or 0 for popular or not
-      this.threshold_name = trimws(popular_share_inputs$share_name[inner_loop_index])
-      print(paste("Running threshold: ",this.threshold_name,sep=""))
-      
-      this.threshold = trimws(popular_share_inputs$share_thresholds[inner_loop_index])
-      this_df = original_df ##
-      this_df$shares[this_df$shares < strtoi(this.threshold)] = 0
-      this_df$shares[this_df$shares >= strtoi(this.threshold)] = 1
-      this_df$shares = as.factor(this_df$shares)
-      ## Split data into test and train
-      ## 70% train, 30% test
-      set.seed(88)
-      split = sample.split(this_df$shares, SplitRatio=.7)
-      this_df.training_df = subset(this_df,split==TRUE)
-      this_df.testing_df = subset(this_df,split==FALSE)
-      ## Begin of analysis ##
-      ## Logistic model
-      this.model_glm <- glm(as.character(this.model),family=binomial(link='logit'),data=this_df.training_df)
-      sink(paste(this.model_name, "_", this.threshold_name, ".model_summary.txt",sep=""))
-      print(paste("Threshold: ", this.threshold_name, " (", this.threshold,") - number of popular articles: ",nrow(this_df.training_df[this_df.training_df$shares == 1,]), ", number of total articles: ", nrow(this_df.training_df),sep=""))
-      print("=============================================================================================")
-      print(paste("Using this.model:", this.model, sep=""))
-      print(summary(this.model_glm))
-      sink()
-      ## Predict model
-      this.model_predict <- predict(this.model_glm, type="response")
-      this.model_prediction <- prediction(this.model_predict, this_df.training_df$shares)
-      this.model_performance <- performance(this.model_prediction, measure = "tpr", x.measure = "fpr")
-      pdf(paste(this.model_name, "_", this.threshold_name, ".model_roc.pdf",sep=""), width=11, height=8.5)
-      plot(this.model_performance, colorize = TRUE, print.cutoffs.at=seq(0,1,.01),text.adj = c(-0.2,1.7))
-      dev.off()   
-      ## AUC
-      this.model_auc <- performance(this.model_prediction, measure = "auc")
-      this.model_auc <- this.model_auc@y.values[[1]]
-      this.model_auc
-      print(paste("AUC:", this.model_auc,sep=""))
+    ## We only repeat this loop because the second time around, it is for testing and not for training
+    if(main_index == 2) {
+      is_testing = TRUE
+      this.file_append = ".test"
+    } else {
+      is_testing = FALSE
+      this.file_append = ""
     }
-  }
+    
+    ## Looping all models for glm
+    for (loop_index in 1:size_of_results) 
+    {
+      this.model_name = trimws(model_inputs$model_name[loop_index])
+      this.model = trimws(model_inputs$predict_vars[loop_index])
+      print(paste("Running model:",this.model_name, "-", this.model,sep=""))
+      
+      dir.create(paste(this.root_path,"/",this.model_name,sep=""))
+      setwd(paste(this.root_path,"/",this.model_name,sep=""))
+      for (inner_loop_index in 1: size_of_thresholds) 
+      {
+        iteration_counter = iteration_counter + 1
+        ## convert Shares to 1 or 0 for popular or not
+        this.threshold_name = trimws(popular_share_inputs$share_name[inner_loop_index])
+        print(paste("Running threshold: ",this.threshold_name,sep=""))
+        
+        this.threshold = trimws(popular_share_inputs$share_thresholds[inner_loop_index])
+        this_df = original_df ##
+        this_df$shares[this_df$shares < strtoi(this.threshold)] = 0
+        this_df$shares[this_df$shares >= strtoi(this.threshold)] = 1
+        this_df$shares = as.factor(this_df$shares)
+        ## Split data into test and train
+        ## 70% train, 30% test
+        set.seed(88)
+        split = sample.split(this_df$shares, SplitRatio=.7)
+        this_df.training_df = subset(this_df,split==TRUE)
+        this_df.testing_df = subset(this_df,split==FALSE)
+        this_data_run = this_df.training_df
+        if(is_testing == TRUE) {
+          this_data_run = this_df.testing_df
+        }
+        ## Begin of analysis ##
+        ## Logistic model
+        this.model_glm <- glm(as.character(this.model),family=binomial(link='logit'),data=this_df.training_df)
+        this.model_aic <- AIC(this.model_glm)
+        ## Predict model
+        if(is_testing == TRUE)
+          this.model_predict <- predict(this.model_glm, newdata=this_data_run, type="response")
+        else {
+          this.model_predict <- predict(this.model_glm, type="response")
+        }      
+        this.model_prediction <- prediction(this.model_predict, this_data_run$shares)
+        this.model_performance <- performance(this.model_prediction, measure = "tpr", x.measure = "fpr")
+        ## Confusion table      
+        this.predicted_training_popularity = rep(1, nrow(this_data_run))
+        this.predicted_training_popularity[this.model_predict <=.50] = 0
+        ## Add only one 0 so that confusion matrix is not unbalanced
+        if(sum(this.predicted_training_popularity)/nrow(this_data_run) == 1)
+        {
+          this.predicted_training_popularity[1] = 0
+        }  
+        ## Prediction are rows, truth are columns
+        this.predicted_training_confusion_table = table(this.predicted_training_popularity,this_data_run$shares)
+        
+        ## Calculate Recall, Precision, F1 Score
+        true_negative = this.predicted_training_confusion_table[1,1]
+        false_negative = this.predicted_training_confusion_table[1,2]
+        true_positive = 0
+        false_positive = 0
+        if(nrow(this.predicted_training_confusion_table) > 1) {
+          false_positive = this.predicted_training_confusion_table[2,1]
+          true_positive = this.predicted_training_confusion_table[2,2]
+        }
+        ## tp / (tp + fn)
+        this.predicted_training_recall = (true_positive/(true_positive + false_negative))
+        ## tp / (tp + fp)
+        this.predicted_training_precision = (true_positive/(true_positive + false_positive))
+        this.predicted_training_f1score = 2 * this.predicted_training_precision * this.predicted_training_recall/ (this.predicted_training_recall + this.predicted_training_precision)
+        ## (tp+tn)/(tp+tn+fp+fn)
+        this.predicted_training_accuracy = (true_positive + true_negative)/(true_positive + true_negative + false_positive + false_negative)
+          
+        pdf(paste(this.model_name, "_", this.threshold_name, this.file_append,".model_roc.pdf",sep=""), width=11, height=8.5)
+        plot(this.model_performance, colorize = TRUE, print.cutoffs.at=seq(0,1,.1),text.adj = c(-0.2,1.7))
+        dev.off()   
+        ## AUC
+        this.model_auc <- performance(this.model_prediction, measure = "auc")
+        this.model_auc <- this.model_auc@y.values[[1]]
+        this.model_auc
+        
+        ## Output results
+        sink(paste(this.model_name, "_", this.threshold_name, this.file_append,".model_summary.txt",sep=""))
+        print(paste("Threshold: ", this.threshold_name, " (", this.threshold,") - number of popular articles: ",nrow(this_data_run[this_data_run$shares == 1,]), ", number of total articles: ", nrow(this_data_run),sep=""))
+        print("=============================================================================================")
+        print(paste("Using this.model:", this.model, sep=""))
+        print(summary(this.model_glm))
+        print("=============================================================================================")
+        print(paste("AUC:", this.model_auc,sep=""))
+        print("")
+        print("CONFUSION TABLE: (Prediction are rows, Truth are columns)")
+        print(this.predicted_training_confusion_table)
+        print("")
+        print(paste("Recall (Correctly Predicted Popular / Actual Popular): ", this.predicted_training_recall), sep="")
+        print(paste("Precision (Correctly Predicted Popular / All Predicted Popular): ", this.predicted_training_precision), sep="")
+        print(paste("F1-Score: ", this.predicted_training_f1score), sep="")
+        sink()
+        ## Save the result in a summary data frame
+        compare_analysis_table[iteration_counter,1] = this.model_name
+        compare_analysis_table[iteration_counter,2] = this.model
+        compare_analysis_table[iteration_counter,3] = this.threshold_name
+        compare_analysis_table[iteration_counter,4] = this.threshold
+        compare_analysis_table[iteration_counter,5] = nrow(this_data_run[this_data_run$shares == 1,])
+        compare_analysis_table[iteration_counter,6] = nrow(this_data_run)
+        compare_analysis_table[iteration_counter,7] = this.model_aic
+        compare_analysis_table[iteration_counter,8] = this.model_auc
+        compare_analysis_table[iteration_counter,9] = this.predicted_training_recall
+        compare_analysis_table[iteration_counter,10] = this.predicted_training_precision
+        compare_analysis_table[iteration_counter,11] = this.predicted_training_f1score
+        compare_analysis_table[iteration_counter,12] = this.predicted_training_accuracy
+        compare_analysis_table[iteration_counter,13] = is_testing
+      }
+    }
+    ## Make certain feature numerics
+    compare_analysis_table$threshold_value=as.numeric(compare_analysis_table$threshold_value)
+    compare_analysis_table$aic=as.numeric(compare_analysis_table$aic)
+    compare_analysis_table$auc=as.numeric(compare_analysis_table$auc)
+    compare_analysis_table$recall=as.numeric(compare_analysis_table$recall)
+    compare_analysis_table$precision=as.numeric(compare_analysis_table$precision)
+    compare_analysis_table$fscore=as.numeric(compare_analysis_table$fscore)
+    compare_analysis_table$actual_popular_count = as.numeric(compare_analysis_table$actual_popular_count)
+    compare_analysis_table$population_size = as.numeric(compare_analysis_table$population_size)
+    compare_analysis_table$accuracy = as.numeric(compare_analysis_table$accuracy)
+    
+    setwd(this.root_path)
+    sink(paste("performance_summary",this.file_append,".txt", sep=""))
+    print(compare_analysis_table)
+    sink()
+  } ## end repeat loop
+  return (compare_analysis_table)
 }
 ## END FUNCTIONS ##
 ## BEGIN MAIN ##
@@ -89,10 +217,10 @@ stat_desc.mashable_df = describe(mashable_df$shares)
 ## Extra calculation to see what a normally distributed shares would look like
 ## First remove right skewed
 stat_desc_log.mashable_df = describe(log(mashable_df$shares))## natural log
-three_sd_above_normal_dist.mashable_df = exp(stat_desc_log.mashable_df$mean) + 3 * exp(stat_desc_log.mashable_df$sd)
+three_sd_above_normal_dist.mashable_df = exp((stat_desc_log.mashable_df$mean)) + (3 * exp((stat_desc_log.mashable_df$sd)))
 mashable_df.normal_dist = subset(mashable_df, shares < three_sd_above_normal_dist.mashable_df)
 ## Next remove left skewed
-stat_desc_normal_dist = describe(mashable_df.normal_dist$shares)
+stat_desc_normal_dist = describe((mashable_df.normal_dist$shares))
 three_sd_below_normal_dist.mashable_df = (stat_desc_normal_dist$mean) - 3 * (stat_desc_normal_dist$sd)
 mashable_df.normal_dist = subset(mashable_df.normal_dist, shares > three_sd_below_normal_dist.mashable_df)
 stat_desc_normal_dist = describe(mashable_df.normal_dist$shares)
@@ -150,9 +278,30 @@ if(!exists("new_df")) {
 }
 
 ## These are models to run ##
-model_name <- c("full_model","full_model_log")
-predict_vars <- c('shares ~ num_imgs + num_videos + data_channel_is_lifestyle + data_channel_is_entertainment + data_channel_is_bus + data_channel_is_socmed + data_channel_is_tech + data_channel_is_world + weekday_is_monday + weekday_is_tuesday + weekday_is_wednesday + weekday_is_thursday + weekday_is_friday + weekday_is_saturday + weekday_is_sunday + is_weekend + title_sentiment + para1_sentiment + para2_sentiment + para3_sentiment + full_sentiment', 
-                  'shares ~ num_imgs.log + num_videos.log + data_channel_is_lifestyle.log + data_channel_is_entertainment.log + data_channel_is_bus.log + data_channel_is_socmed.log + data_channel_is_tech.log + data_channel_is_world.log + weekday_is_monday.log + weekday_is_tuesday.log + weekday_is_wednesday.log + weekday_is_thursday.log + weekday_is_friday.log + weekday_is_saturday.log + weekday_is_sunday.log + is_weekend.log + title_sentiment.log + para1_sentiment.log + para2_sentiment.log + para3_sentiment.log + full_sentiment.log' 
+model_name <- c(
+                "original_full_model"
+                ,"original_full_model_optimized"
+                ,"original_full_model_log"
+                ,"original_full_model_log_optimized"
+                ,"sentiment_model"
+                ,"sentiment_model_optimized"
+                ,"sentiment_model_log"
+                ,"full_combined_model"
+                ,"full_combined_model_optimized"
+                ,"full_combined_model_log"
+                , "full_combined_model_log_optimized"
+                )
+predict_vars <- c('shares ~ num_imgs + num_videos + data_channel_is_lifestyle + data_channel_is_entertainment + data_channel_is_bus + data_channel_is_socmed + data_channel_is_tech + data_channel_is_world + weekday_is_monday + weekday_is_tuesday + weekday_is_wednesday + weekday_is_thursday + weekday_is_friday + weekday_is_saturday + weekday_is_sunday + is_weekend'
+                  ,'shares ~ num_imgs + num_videos + data_channel_is_lifestyle + data_channel_is_entertainment + data_channel_is_bus + data_channel_is_socmed + data_channel_is_tech + data_channel_is_world + weekday_is_monday + weekday_is_tuesday + weekday_is_wednesday + weekday_is_thursday + weekday_is_friday'
+                  ,'shares ~ num_imgs.log + num_videos.log + data_channel_is_lifestyle.log + data_channel_is_entertainment.log + data_channel_is_bus.log + data_channel_is_socmed.log + data_channel_is_tech.log + data_channel_is_world.log + weekday_is_monday.log + weekday_is_tuesday.log + weekday_is_wednesday.log + weekday_is_thursday.log + weekday_is_friday.log + weekday_is_saturday.log + weekday_is_sunday.log + is_weekend.log'
+                  ,'shares ~ num_imgs.log + num_videos.log + data_channel_is_lifestyle.log + data_channel_is_entertainment.log + data_channel_is_bus.log + data_channel_is_socmed.log + data_channel_is_tech.log + data_channel_is_world.log + weekday_is_monday.log + weekday_is_tuesday.log + weekday_is_wednesday.log + weekday_is_thursday.log + weekday_is_friday.log'
+                  ,'shares ~ title_sentiment + para1_sentiment + para2_sentiment + para3_sentiment + full_sentiment'
+                  ,'shares ~ title_sentiment + full_sentiment'
+                  ,'shares ~ title_sentiment.log + para1_sentiment.log + para2_sentiment.log + para3_sentiment.log + full_sentiment.log'
+                  ,'shares ~ num_imgs + num_videos + data_channel_is_lifestyle + data_channel_is_entertainment + data_channel_is_bus + data_channel_is_socmed + data_channel_is_tech + data_channel_is_world + weekday_is_monday + weekday_is_tuesday + weekday_is_wednesday + weekday_is_thursday + weekday_is_friday + weekday_is_saturday + weekday_is_sunday + is_weekend + title_sentiment + para1_sentiment + para2_sentiment + para3_sentiment + full_sentiment'
+                  ,'shares ~ num_imgs + num_videos + data_channel_is_lifestyle + data_channel_is_entertainment + data_channel_is_bus + data_channel_is_socmed + data_channel_is_tech + data_channel_is_world + weekday_is_monday + weekday_is_tuesday + weekday_is_wednesday + weekday_is_thursday + weekday_is_friday + para3_sentiment + full_sentiment'
+                  ,'shares ~ num_imgs.log + num_videos.log + data_channel_is_lifestyle.log + data_channel_is_entertainment.log + data_channel_is_bus.log + data_channel_is_socmed.log + data_channel_is_tech.log + data_channel_is_world.log + weekday_is_monday.log + weekday_is_tuesday.log + weekday_is_wednesday.log + weekday_is_thursday.log + weekday_is_friday.log + weekday_is_saturday.log + weekday_is_sunday.log + is_weekend.log + title_sentiment.log + para1_sentiment.log + para2_sentiment.log + para3_sentiment.log + full_sentiment.log' 
+                  ,'shares ~ num_imgs.log + num_videos.log + data_channel_is_lifestyle.log + data_channel_is_entertainment.log + data_channel_is_bus.log + data_channel_is_socmed.log + data_channel_is_tech.log + data_channel_is_world.log + weekday_is_monday.log + weekday_is_tuesday.log + weekday_is_wednesday.log + weekday_is_thursday.log + weekday_is_friday.log + full_sentiment.log'
                   )
 
 model_inputs = data.frame(model_name, predict_vars)
@@ -169,5 +318,5 @@ share_threshold_inputs$share_name = as.character(share_threshold_inputs$share_na
 share_threshold_inputs$share_thresholds = as.numeric(share_threshold_inputs$share_thresholds)
 
 print(summary(new_df$shares))
-## Begin of analysis ##
-runAnalysis(model_inputs, share_threshold_inputs, new_df,datasetHome)
+## Begin of analysis training ##
+summary_df = runAnalysis(model_inputs, share_threshold_inputs, new_df,datasetHome, TRUE)
