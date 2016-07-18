@@ -194,7 +194,7 @@ names(box_top_ten_errant_race_june_10) = c("RaceId", "convertedEDTh","avg_five_m
 ggplot(data = box_top_ten_errant_race_june_10, aes(x=convertedEDTh, y=avg_five_min_bin_failure_rate)) + 
   geom_line(aes()) +
   xlab("Hour") +
-  ylab("Failure Rate Observations") +
+  ylab("Average Failure Rate") +
   facet_wrap( ~ RaceId, scales="free")
 
 
