@@ -22,8 +22,13 @@ if("gridExtra" %in% rownames(installed.packages()) == FALSE) {
   install.packages("caTools")
 }
 library(gridExtra)
+if("e1071" %in% rownames(installed.packages()) == FALSE) {
+  install.packages("e1071")
+}
+library(e1071)
+
 ## Clear out all vars
-##rm(list = ls())
+rm(list = ls())
 
 projectHome <- paste("~/DataScience") ##"/Users/michaelchiem/DataScience"
 datasetHome <- paste(projectHome,"/OnlineNewsPopularity",sep="")
@@ -246,12 +251,12 @@ if(!exists("new_df")) {
   ## Boost sentiment based on top-down user reading behavior
   ## The higher the more weight
   ## So title_sentiment = title_sentiment x 4, and para1_sentiment = para1_sentiment X 3 and so on...
-  new_df$title_sentiment = new_df$title_sentiment * 4
-  new_df$para1_sentiment = new_df$para1_sentiment * 3
-  new_df$para2_sentiment = new_df$para2_sentiment * 2
-  new_df$para3_sentiment = new_df$para3_sentiment * 1
+  new_df$title_sentiment = new_df$title_sentiment * 6765
+  new_df$para1_sentiment = new_df$para1_sentiment * 4181
+  new_df$para2_sentiment = new_df$para2_sentiment * 2584
+  new_df$para3_sentiment = new_df$para3_sentiment * 1597
   ## Boost by average of sum of the weights above
-  new_df$full_sentiment = new_df$full_sentiment * mean(c(4,3,2,1))
+  new_df$full_sentiment = new_df$full_sentiment * mean(c(6765,4181,2584,1597))
   
   ## Add columns for logs, add a minor decimal value to allow log to work
   new_df$num_imgs.log = log(new_df$num_imgs + .0001)
@@ -320,3 +325,40 @@ share_threshold_inputs$share_thresholds = as.numeric(share_threshold_inputs$shar
 print(summary(new_df$shares))
 ## Begin of analysis training ##
 summary_df = runAnalysis(model_inputs, share_threshold_inputs, new_df,datasetHome, TRUE)
+
+
+this_df = new_df
+this_df$shares[this_df$shares < strtoi(1043)] = 0
+this_df$shares[this_df$shares >= strtoi(1043)] = 1
+this_df$shares = as.factor(this_df$shares)
+## Split data into test and train
+## 70% train, 30% test
+set.seed(88)
+split = sample.split(this_df$shares, SplitRatio=.7)
+this_df.training_df = subset(this_df,split==TRUE)
+this_df.testing_df = subset(this_df,split==FALSE)
+
+## Naive Bayes example ##
+install.packages("klaR")
+library(klaR)
+library(caret)
+# calculate correlation matrix
+correlationMatrix <- cor(this_df.training_df[,18:22])
+# summarize the correlation matrix
+print(correlationMatrix)
+# find attributes that are highly corrected (ideally >0.75)
+highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.1)
+# print indexes of highly correlated attributes
+print(highlyCorrelated)
+
+xTrain = this_df.training_df[, c("title_sentiment","para1_sentiment","para2_sentiment","para3_sentiment","full_sentiment")]
+yTrain = this_df.training_df$shares
+xTest = this_df.testing_df[, c("title_sentiment","para1_sentiment","para2_sentiment","para3_sentiment","full_sentiment")]
+yTest = this_df.testing_df$shares
+
+nb_model = train(xTrain,yTrain,'nb',trControl=trainControl(method='cv',number=10))
+densityplot(nb_model)
+nb_model
+summary(nb_model)
+## Confusion matrix ##
+prop.table(table(predict(nb_model$finalModel,xTest)$class,yTest))
