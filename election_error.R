@@ -12,7 +12,7 @@ library(data.table)
 setwd("/Users/michaelchiem/DataScience")
 ############################################## Doing full parse from raw file
 ## Parse errors
-errors <- read.table(pipe("grep 'code=2' nbc_elections.log"), sep='|')
+errors <- read.table(pipe("grep 'Failed Save' nbc_elections.log"), sep='|',quote="\"")
 errors$Time <- errors$V1
 errors$Thread <-errors$V1
 errors$RaceId <-errors$V1
@@ -43,7 +43,7 @@ a$Day <- gsub('\\[',"",a$Day)
 errors <- a
 
 ## Parse successes
-successes <- read.table(pipe("grep 'Saving an Election Race to the CMS: raceId=' nbc_elections.log"), sep='|')
+successes <- read.table(pipe("grep 'Success Save' nbc_elections.log"), sep='|', quote="\"")
 successes$Time <- successes$V1
 successes$Thread <-successes$V1
 successes$RaceId <-successes$V1
@@ -77,10 +77,10 @@ successes <- a
 ## Start with failure df
 ##failed_df <- read.csv("out.csv",header=TRUE,sep=",")
 failed_df <- errors
-tempDate <- as.POSIXct( paste(failed_df$Day," ",failed_df$Time, sep=""), format="%m-%d %H:%M", tz="UTC")
+tempDate <- as.POSIXct( paste(failed_df$Day," ",failed_df$Time, sep=""), format="%m-%d %H:%M", tz="America/New_York")
 
 ## Convert from UTC to EDT
-tempDate <- as.POSIXct( tempDate, "America/Los_Angeles")
+##tempDate <- as.POSIXct( tempDate, "America/Los_Angeles")
 failed_df$convertedEDT <- tempDate
 attr(failed_df$convertedEDT, "tzone") <- "America/New_York"
 failed_df$convertedEDTh <- as.numeric(format(failed_df$convertedEDT,"%H")) * 60
@@ -97,10 +97,10 @@ failed_df$two_min_bin = floor((failed_df$convertedEDThm + 1)/ 2)
 ## Success df
 ##success_df <- read.csv("success.csv",header=TRUE,sep=",")
 success_df <- successes
-tempDate <- as.POSIXct( paste(success_df$Day," ",success_df$Time, sep=""), format="%m-%d %H:%M", tz="UTC")
+tempDate <- as.POSIXct( paste(success_df$Day," ",success_df$Time, sep=""), format="%m-%d %H:%M", tz="America/New_York")
 
 ## Convert from UTC to EDT
-tempDate <- as.POSIXct( tempDate, "America/Los_Angeles")
+##tempDate <- as.POSIXct( tempDate, "America/Los_Angeles")
 success_df$convertedEDT <- tempDate
 attr(success_df$convertedEDT, "tzone") <- "America/New_York"
 success_df$convertedEDTh <- as.numeric(format(success_df$convertedEDT,"%H")) * 60
@@ -115,15 +115,15 @@ success_df$five_min_bin = floor((success_df$convertedEDThm + 1)/ 5)
 success_df$two_min_bin = floor((success_df$convertedEDThm + 1)/ 2)
 
 ## Removing duplicate successes that failed within a minute of each other
-keys <- c("RaceId", "five_min_bin")
-tData <- data.table(success_df, key=keys)
-tBounce <- data.table(failed_df, key=keys)
-tData[tBounce, Bounced := 1L]
-tData <- tData[is.na(tData$Bounced),]
-tData$Bounced <- NULL
+#keys <- c("RaceId", "five_min_bin")
+#tData <- data.table(success_df, key=keys)
+#tBounce <- data.table(failed_df, key=keys)
+#tData[tBounce, Bounced := 1L]
+#tData <- tData[is.na(tData$Bounced),]
+#tData$Bounced <- NULL
 
 ## Bind the two df
-out_df = rbind(failed_df,tData)
+out_df = rbind(failed_df,success_df)
 
 ## Add a factor to represent 1 to 10 for every 10 minute interval (within a single day)
 ## Used to see which minute that the api limit refreshes
@@ -226,7 +226,7 @@ LtoM <-colorRampPalette(c('red', 'yellow' ))
 Mid <- "snow3"
 MtoH <-colorRampPalette(c('orange', 'red'))
 ggplot(grouped_failure_rate, aes(x=five_min_bin * 5/60,y=five_min_bin_failure_rate,fill=five_min_bin_failure_rate)) +
-geom_bar(stat="identity") + facet_wrap(~convertedEDTDay) +
+  geom_bar(stat="identity") + facet_wrap(~convertedEDTDay) +
   xlab("Time of Day (EDT)") +
   ylab("Error Rate (Interval Error / Full Day Transaction)") +
   labs(fill="Error Rate") +
@@ -246,7 +246,7 @@ end_day <- high_trans_period_df[1,]$convertedEDTDay
 end_time <- floor(high_trans_period_df[1,]$five_min_bin * 1/12)
 start_day <- high_trans_period_df[nrow(high_trans_period_df),]$convertedEDTDay
 start_time <- floor(high_trans_period_df[nrow(high_trans_period_df),]$five_min_bin * 1/12)
-
+#** MUST RUN THESE IF YOU WANT BELOW PLOTS ** 
 problem_df <- out_df[out_df$convertedEDTDay == start_day,]
 problem_df <- problem_df[problem_df$convertedEDTh >=start_time,]
 problem_df2 <- out_df[out_df$convertedEDTDay == end_day,]
