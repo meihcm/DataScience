@@ -252,9 +252,16 @@ problem_df <- problem_df[problem_df$convertedEDTh >=start_time,]
 problem_df2 <- out_df[out_df$convertedEDTDay == end_day,]
 problem_df2 <- problem_df2[problem_df2$convertedEDTh <= end_time,]
 problem_df <- rbind(problem_df, problem_df2)
+numOfFiveBins <- (1 + max(problem_df$convertedEDTh) - min(problem_df$convertedEDTh)) * 12
 
-ggplot(problem_df, aes(convertedEDT)) +
-  geom_freqpoly(aes(group = status, colour = status), bins=144) +
+## bins may not be 144!! 
+##ggplot(out_df, aes(convertedEDT)) +
+##  geom_freqpoly(aes(group = status, colour = status), bins=144) +
+##  xlab("Time of Day (EDT)") + 
+##  geom_hline(yintercept=500,linetype="dashed",color="red") 
+
+ggplot(out_df, aes(convertedEDT)) +
+  geom_freqpoly(aes(group = status, colour = status), bins=numOfFiveBins) +
   xlab("Time of Day (EDT)") + 
   geom_hline(yintercept=500,linetype="dashed",color="red") 
 
@@ -298,7 +305,6 @@ ten_min_interval_all_df <- ten_min_interval_all_df[,1:3]
 ggplot(ten_min_interval_all_df,aes(x=convertedTenMinCycle,y=Count)) + geom_bar(stat="identity") + facet_wrap(~Station)
 
 ## Over time success and failures by station (all station/all day)
-numOfFiveBins <- (1 + max(problem_df$convertedEDTh) - min(problem_df$convertedEDTh)) * 12
 ggplot(out_df, aes(convertedEDT)) +
   geom_freqpoly(aes(group = status, colour = status), bins=numOfFiveBins) + facet_wrap(~Station) +
   xlab("Time of Day (EDT)") + 
