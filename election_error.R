@@ -342,3 +342,80 @@ prp(rpart.tenMinModel,extra=102,under=TRUE, varlen=0,faclen=0)
 
 rpart.fiveMinModel = rpart(status_binary ~  convertedFiveMinCycle, data=problem_df,method="class",control=rpart.control(minbucket=25))
 prp(rpart.fiveMinModel,extra=102,under=TRUE, varlen=0,faclen=0)
+
+## New report to estimate when the physical file is seen and when the the actual timestamp was ##
+next_file_df <- read.table(pipe("grep 'The next file is' elections.log"), sep='|',quote="\"")
+next_file_df$log_time <- next_file_df$V1
+next_file_df$station <- next_file_df$V1
+names(next_file_df) <- c("LogTime", "FileUnixTime", "Station")
+## Parse log time
+next_file_df$LogTime <- gsub('].*$',"",next_file_df$LogTime)
+next_file_df$LogTime <- gsub('\\[',"",next_file_df$LogTime)
+tempDate <- as.POSIXct( next_file_df$LogTime, format="%m-%d %H:%M", tz="America/New_York")
+next_file_df$LogTime <- tempDate
+## Parse file unix time
+next_file_df$FileUnixTime <- gsub('^.*elx-',"",next_file_df$FileUnixTime)
+next_file_df$FileUnixTime <- gsub('^.*-',"",next_file_df$FileUnixTime)
+next_file_df$FileUnixTime <- gsub('\\.zip',"",next_file_df$FileUnixTime)
+tempDate1 <- as.POSIXct(as.numeric(next_file_df$FileUnixTime), origin="1970-01-01")
+next_file_df$FileUnixTime <- tempDate1
+## Calculate lag time
+next_file_df$lagTimeInSeconds <- abs(next_file_df$FileUnixTime - next_file_df$LogTime)
+## Parse station
+next_file_df$Station <- gsub('^.*elx-',"",next_file_df$Station)
+next_file_df$Station <- gsub('-.*$',"",next_file_df$Station)
+## Summary
+by_station <- group_by(next_file_df,Station)
+by_station <- summarize(by_station, mean(lagTimeInSeconds))
+names(by_station) <- c("Station", "AvgLag")
+## Box plot it
+ggplot(data = next_file_df, aes(x=Station, y=lagTimeInSeconds)) + 
+  geom_boxplot(aes(fill=Station)) +
+  stat_boxplot(geom ='errorbar') + 
+  xlab("Station") +
+  ylab("Lag Time in Seconds") +
+  labs(fill = "Station") 
+  ## + facet_wrap( ~ Station, scales="free")
+## Bar plot it
+ggplot(by_station, aes(x=Station, y=AvgLag)) + 
+  geom_bar(stat="identity", aes(fill=AvgLag)) +
+  xlab("Station") +
+  ylab("Average Lag Time in Seconds")
+
+## Do time calculation from one row to next group by different station
+next_file_df <- next_file_df %>%
+  arrange(LogTime) %>%
+  group_by(Station) %>%
+  mutate(AvgLag1 = LogTime - lag(LogTime))
+next_file_df$AvgLag1[is.na(next_file_df$AvgLag1)] <- 0
+## Summary
+by_station1 <- group_by(next_file_df,Station)
+by_station1 <- summarize(by_station1, mean(AvgLag1))
+by_station1$AvgLag1 <- as.numeric(by_station1$AvgLag1)
+names(by_station1) <- c("Station", "AvgLag")
+
+## Join both by_station df
+##by_station1 <- merge(by_station, by_station1, by.x = "Station")
+
+## Box plot it
+ggplot(data = next_file_df, aes(x=Station, y=AvgLag1)) + 
+  geom_boxplot(aes(fill=Station)) +
+  stat_boxplot(geom ='errorbar') + 
+  xlab("Station") +
+  ylab("Log Lag Time in Seconds") +
+  labs(fill = "Station") 
+## + facet_wrap( ~ Station, scales="free")
+
+## Bar plot it
+ggplot(by_station1, aes(x=Station, y=AvgLag)) + 
+  geom_bar(stat="identity", aes(fill=AvgLag))  +
+  xlab("Station") +
+  ylab("Avg Log Lag Time in Seconds")
+
+#overlay both bar plot, shows throughput lag overlay with processing lag
+p <- ggplot(NULL, aes(Station, AvgLag)) + 
+  geom_bar(aes(fill = "Avg Election Processing Lag"), data = by_station, alpha = 0.5,stat="identity") +
+  geom_bar(aes(fill = "Avg NewsTicker Data Throughput Lag"), data = by_station1, alpha = 0.5,stat="identity") +
+  ylab("Average Lag In Seconds") +
+  xlab("Stations")
+p
