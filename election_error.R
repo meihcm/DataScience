@@ -9,10 +9,13 @@ library(gridExtra)
 require("psych")
 library(psych)
 library(data.table)
+
+## Be careful remove all variables ##
+rm(list = ls())
 setwd("/Users/michaelchiem/DataScience")
 ############################################## Doing full parse from raw file
 ## Parse errors
-errors <- read.table(pipe("grep 'Failed Save' nbc_elections.log"), sep='|',quote="\"")
+errors <- read.table(pipe("grep 'Failed Save' elections.log"), sep='|',quote="\"")
 errors$Time <- errors$V1
 errors$Thread <-errors$V1
 errors$RaceId <-errors$V1
@@ -43,7 +46,7 @@ a$Day <- gsub('\\[',"",a$Day)
 errors <- a
 
 ## Parse successes
-successes <- read.table(pipe("grep 'Success Save' nbc_elections.log"), sep='|', quote="\"")
+successes <- read.table(pipe("grep 'Success Save' elections.log"), sep='|', quote="\"")
 successes$Time <- successes$V1
 successes$Thread <-successes$V1
 successes$RaceId <-successes$V1
@@ -124,6 +127,7 @@ success_df$two_min_bin = floor((success_df$convertedEDThm + 1)/ 2)
 
 ## Bind the two df
 out_df = rbind(failed_df,success_df)
+numOfFiveBins <- (1 + max(out_df$convertedEDTh) - min(out_df$convertedEDTh)) * 12
 
 ## Add a factor to represent 1 to 10 for every 10 minute interval (within a single day)
 ## Used to see which minute that the api limit refreshes
@@ -154,34 +158,34 @@ top_ten_errant_race <- top_ten_errant_race[order(-top_ten_errant_race$all_time_r
 top_ten_errant_race <- top_ten_errant_race[1:10,] 
 ## plot it connecting points with line
 top_ten_errant_race$RaceId = factor(top_ten_errant_race$RaceId, levels = top_ten_errant_race$RaceId[order(top_ten_errant_race$all_time_race_failure_rate_average)])
-ggplot(top_ten_errant_race, aes(x=RaceId,y=all_time_race_failure_rate_average,colour=RaceId,fill=RaceId)) + 
-  geom_bar(stat = "identity",width=0.4) + coord_flip() + xlab("Top Race Id") + ylab("Average Error")
+##XXggplot(top_ten_errant_race, aes(x=RaceId,y=all_time_race_failure_rate_average,colour=RaceId,fill=RaceId)) + 
+  ##geom_bar(stat = "identity",width=0.4) + coord_flip() + xlab("Top Race Id") + ylab("Average Error")
 
 ## Box plotting top_ten across the 4 days
 box_top_ten_errant_race = out_df[out_df$RaceId %in% top_ten_errant_race$RaceId,]
 box_top_ten_errant_race = aggregate(box_top_ten_errant_race,by=list(box_top_ten_errant_race$RaceId,box_top_ten_errant_race$five_min_bin_failure_rate, box_top_ten_errant_race$convertedEDTDay),FUN=length)
 names(box_top_ten_errant_race) = c("RaceId", "five_min_bin_failure_rate","convertedEDTDay")
 box_top_ten_errant_race = box_top_ten_errant_race[,1:3]
-ggplot(data = box_top_ten_errant_race, aes(x=convertedEDTDay, y=five_min_bin_failure_rate)) + 
-  geom_boxplot(aes(fill=convertedEDTDay)) +
-  stat_boxplot(geom ='errorbar') + 
-  xlab("Day") +
-  ylab("Failure Rate Observations (5 Min Intervals)") +
-  labs(fill = "Day") +
-  facet_wrap( ~ RaceId, scales="free")
+##XXggplot(data = box_top_ten_errant_race, aes(x=convertedEDTDay, y=five_min_bin_failure_rate)) + 
+##XX  geom_boxplot(aes(fill=convertedEDTDay)) +
+##XX  stat_boxplot(geom ='errorbar') + 
+##XX  xlab("Day") +
+##XX  ylab("Failure Rate Observations (5 Min Intervals)") +
+##XX  labs(fill = "Day") +
+##XX  facet_wrap( ~ RaceId, scales="free")
 
 ## Box plotting all races across the 4 days
 box_all_errant_race = out_df
 box_all_errant_race = aggregate(box_all_errant_race,by=list(box_all_errant_race$RaceId,box_all_errant_race$five_min_bin_failure_rate, box_all_errant_race$convertedEDTDay),FUN=length)
 names(box_all_errant_race) = c("RaceId", "five_min_bin_failure_rate","convertedEDTDay")
 box_all_errant_race = box_all_errant_race[,1:3]
-ggplot(data = box_all_errant_race, aes(x=convertedEDTDay, y=five_min_bin_failure_rate)) + 
-  geom_boxplot(aes(fill=convertedEDTDay)) +
-  stat_boxplot(geom ='errorbar') + 
-  xlab("Day") +
-  ylab("Failure Rate Observations (5 Min Intervals)") +
-  labs(fill = "Day") +
-  facet_wrap( ~ convertedEDTDay, scales="free")
+##XXggplot(data = box_all_errant_race, aes(x=convertedEDTDay, y=five_min_bin_failure_rate)) + 
+##XX  geom_boxplot(aes(fill=convertedEDTDay)) +
+##XX  stat_boxplot(geom ='errorbar') + 
+##XX  xlab("Day") +
+##XX  ylab("Failure Rate Observations (5 Min Intervals)") +
+##XX  labs(fill = "Day") +
+##XX  facet_wrap( ~ convertedEDTDay, scales="free")
 
 ## Plotting top_ten on June 10th by hours
 box_top_ten_errant_race_june_10 = out_df[out_df$RaceId %in% top_ten_errant_race$RaceId & out_df$convertedEDTDay=="10-June",]
@@ -191,30 +195,34 @@ box_top_ten_errant_race_june_10 = box_top_ten_errant_race_june_10[,1:4]
 box_top_ten_errant_race_june_10 = aggregate(box_top_ten_errant_race_june_10,by=list(box_top_ten_errant_race_june_10$RaceId,box_top_ten_errant_race_june_10$convertedEDTh),FUN=mean)
 box_top_ten_errant_race_june_10 = box_top_ten_errant_race_june_10[,c(1,2,6)]
 names(box_top_ten_errant_race_june_10) = c("RaceId", "convertedEDTh","avg_five_min_bin_failure_rate")
-ggplot(data = box_top_ten_errant_race_june_10, aes(x=convertedEDTh, y=avg_five_min_bin_failure_rate)) + 
-  geom_line(aes()) +
-  xlab("Hour") +
-  ylab("Average Failure Rate") +
-  facet_wrap( ~ RaceId, scales="free")
+##XXggplot(data = box_top_ten_errant_race_june_10, aes(x=convertedEDTh, y=avg_five_min_bin_failure_rate)) + 
+##XX  geom_line(aes()) +
+##XX  xlab("Hour") +
+##XX  ylab("Average Failure Rate") +
+##XX  facet_wrap( ~ RaceId, scales="free")
 
 
 ## General plots
 ## Full errors
-ggplot(data=subset(out_df, status=="fail"),mapping=aes(x=(convertedEDThm/60))) + 
-  geom_histogram(bins=288, color="red") + 
-  facet_wrap(~convertedEDTDay) + 
-  xlab("Time of Day (EDT)") + 
-  geom_hline(yintercept=500,linetype="dashed",color="red")
+##XXggplot(data=subset(out_df, status=="fail"),mapping=aes(x=(convertedEDThm/60))) + 
+##XX  geom_histogram(bins=numOfFiveBins, color="red") + 
+##XX  facet_wrap(~convertedEDTDay) + 
+##XX  xlab("Time of Day (EDT)") + 
+##XX  geom_hline(yintercept=500,linetype="dashed",color="red")
 
 ## Full successes
-ggplot(data=subset(out_df, status=="success"),mapping=aes(x=(convertedEDThm/60))) + geom_histogram(bins=288, color="cyan3") + 
-  facet_wrap(~convertedEDTDay) + 
-  xlab("Time of Day (EDT)") + 
-  geom_hline(yintercept=500,linetype="dashed",color="red") 
-
+##XXggplot(data=subset(out_df, status=="success"),mapping=aes(x=(convertedEDThm/60))) + geom_histogram(bins=numOfFiveBins, color="cyan3") + 
+##XX  facet_wrap(~convertedEDTDay) + 
+##XX  xlab("Time of Day (EDT)") + 
+##XX  geom_hline(yintercept=500,linetype="dashed",color="red") 
+## Help with facet ordering
+out_df$convertedEDTDayAsDate <- as.Date(out_df$convertedEDTDay, "%d-%B")
+prettyPrintFacetNames <- function(string) {
+  return(format(string, format="%B-%d"))
+}
 ## Combined success and failure on one graph
 ggplot(out_df, aes(convertedEDThm/60)) +
-  geom_freqpoly(aes(group = status, colour = status), bins=288) + facet_wrap(~convertedEDTDay) +
+  geom_freqpoly(aes(group = status, colour = status), bins=numOfFiveBins) + facet_wrap(~convertedEDTDayAsDate, labeller=prettyPrintFacetNames) +
   xlab("Time of Day (EDT)") + 
   geom_hline(yintercept=500,linetype="dashed",color="red") 
 
@@ -225,13 +233,13 @@ names(grouped_failure_rate) = c("five_min_bin", "five_min_bin_failure_rate","con
 LtoM <-colorRampPalette(c('red', 'yellow' ))
 Mid <- "snow3"
 MtoH <-colorRampPalette(c('orange', 'red'))
-ggplot(grouped_failure_rate, aes(x=five_min_bin * 5/60,y=five_min_bin_failure_rate,fill=five_min_bin_failure_rate)) +
-  geom_bar(stat="identity") + facet_wrap(~convertedEDTDay) +
-  xlab("Time of Day (EDT)") +
-  ylab("Error Rate (Interval Error / Full Day Transaction)") +
-  labs(fill="Error Rate") +
-  scale_fill_gradient2(low=LtoM(100), mid='snow3', 
-                       high=MtoH(100), space='Lab')
+##XXggplot(grouped_failure_rate, aes(x=five_min_bin * 5/60,y=five_min_bin_failure_rate,fill=five_min_bin_failure_rate)) +
+##XX  geom_bar(stat="identity") + facet_wrap(~convertedEDTDay) +
+##XX  xlab("Time of Day (EDT)") +
+##XX  ylab("Error Rate (Interval Error / Full Day Transaction)") +
+##XX  labs(fill="Error Rate") +
+##XX  scale_fill_gradient2(low=LtoM(100), mid='snow3', 
+##XX                       high=MtoH(100), space='Lab')
 
 ## Analyze closer date range with close to 500 transactions per 5 minute bins
 ## Closer look at problem
@@ -256,29 +264,29 @@ numOfFiveBins <- (1 + max(problem_df$convertedEDTh) - min(problem_df$convertedED
 
 ## bins may not be 144!! 
 ##ggplot(out_df, aes(convertedEDT)) +
-##  geom_freqpoly(aes(group = status, colour = status), bins=144) +
+##  geom_freqpoly(aes(group = status, colour = status), bins=numOfFiveBins) +
 ##  xlab("Time of Day (EDT)") + 
 ##  geom_hline(yintercept=500,linetype="dashed",color="red") 
 
-ggplot(out_df, aes(convertedEDT)) +
-  geom_freqpoly(aes(group = status, colour = status), bins=numOfFiveBins) +
-  xlab("Time of Day (EDT)") + 
-  geom_hline(yintercept=500,linetype="dashed",color="red") 
+##XXggplot(out_df, aes(convertedEDT)) +
+##XX  geom_freqpoly(aes(group = status, colour = status), bins=numOfFiveBins) +
+##XX  xlab("Time of Day (EDT)") + 
+##XX  geom_hline(yintercept=500,linetype="dashed",color="red") 
 
 ## See if the 10 minute interval cycle visual has any hint of when the api resets from the problem_df dataset
 ## See if the x axis is ten minute cycle has more clues
-ggplot(problem_df, aes(convertedTenMinCycle)) +
-  geom_bar(aes(group = status, colour = status, fill=status)) +
-  xlab("10 Minute Cycles") + 
-  facet_wrap(~Station) +
-  geom_hline(yintercept=500,linetype="dashed",color="red") 
+##XXggplot(problem_df, aes(convertedTenMinCycle)) +
+##XX  geom_bar(aes(group = status, colour = status, fill=status)) +
+##XX  xlab("10 Minute Cycles") + 
+##XX  facet_wrap(~Station) +
+##XX  geom_hline(yintercept=500,linetype="dashed",color="red") 
 
 ## Now expand it to all data
-ggplot(out_df, aes(convertedTenMinCycle)) +
-  geom_bar(aes(group = status, colour = status, fill=status)) +
-  xlab("10 Minute Cycles") + 
-  facet_wrap(~Station) +
-  geom_hline(yintercept=500,linetype="dashed",color="red") 
+##XXggplot(out_df, aes(convertedTenMinCycle)) +
+##XX  geom_bar(aes(group = status, colour = status, fill=status)) +
+##XX  xlab("10 Minute Cycles") + 
+##XX  facet_wrap(~Station) +
+##XX  geom_hline(yintercept=500,linetype="dashed",color="red") 
 
 ## Only failures of problem_df
 problem_fail_only_df <- subset(problem_df, status=="fail")
@@ -286,7 +294,7 @@ ten_min_interval_problem_df <- aggregate(problem_fail_only_df, by=list(problem_f
 names(ten_min_interval_problem_df) = c("Station","convertedTenMinCycle","Count")
 ten_min_interval_problem_df <- ten_min_interval_problem_df[,1:3]
 ## Now plot it
-ggplot(ten_min_interval_problem_df,aes(x=convertedTenMinCycle,y=Count)) + geom_bar(stat="identity") + facet_wrap(~Station)
+##XXggplot(ten_min_interval_problem_df,aes(x=convertedTenMinCycle,y=Count)) + geom_bar(stat="identity") + facet_wrap(~Station)
 
 ## Now expand it to across all data with failures
 only_failed_df = subset(out_df, status=="fail")
@@ -294,7 +302,7 @@ ten_min_interval_all_df <- aggregate(only_failed_df, by=list(only_failed_df$Stat
 names(ten_min_interval_all_df) = c("Station","convertedTenMinCycle","Count")
 ten_min_interval_all_df <- ten_min_interval_all_df[,1:3]
 ## Now plot it
-ggplot(ten_min_interval_all_df,aes(x=convertedTenMinCycle,y=Count)) + geom_bar(stat="identity") + facet_wrap(~Station)
+##XXggplot(ten_min_interval_all_df,aes(x=convertedTenMinCycle,y=Count)) + geom_bar(stat="identity") + facet_wrap(~Station)
 
 ## How bout map successes and not failures
 only_success_df = subset(out_df, status=="success")
@@ -302,13 +310,13 @@ ten_min_interval_all_df <- aggregate(only_success_df, by=list(only_success_df$St
 names(ten_min_interval_all_df) = c("Station","convertedTenMinCycle","Count")
 ten_min_interval_all_df <- ten_min_interval_all_df[,1:3]
 ## Now plot it
-ggplot(ten_min_interval_all_df,aes(x=convertedTenMinCycle,y=Count)) + geom_bar(stat="identity") + facet_wrap(~Station)
+##XXggplot(ten_min_interval_all_df,aes(x=convertedTenMinCycle,y=Count)) + geom_bar(stat="identity") + facet_wrap(~Station)
 
 ## Over time success and failures by station (all station/all day)
-ggplot(out_df, aes(convertedEDT)) +
-  geom_freqpoly(aes(group = status, colour = status), bins=numOfFiveBins) + facet_wrap(~Station) +
-  xlab("Time of Day (EDT)") + 
-  geom_hline(yintercept=500,linetype="dashed",color="red") 
+##XXggplot(out_df, aes(convertedEDT)) +
+##XX  geom_freqpoly(aes(group = status, colour = status), bins=numOfFiveBins) + facet_wrap(~Station) +
+##XX  xlab("Time of Day (EDT)") + 
+##XX  geom_hline(yintercept=500,linetype="dashed",color="red") 
 
 ## Do some aggregations
 count_of_unique_by_station <- aggregate(out_df, by=list(out_df$Station, out_df$RaceId), FUN=length);
@@ -335,13 +343,13 @@ ggplot(count_of_all_transactions_by_station, aes(x=count_of_unique_races_by_stat
   xlab("Station")
 
 ## Try running some regression and plotting CART
-out_df$status_binary = 0
-out_df$status_binary[out_df$status=="success"] = 1
-rpart.tenMinModel = rpart(status_binary ~  convertedTenMinCycle, data=problem_df,method="class",control=rpart.control(minbucket=25))
-prp(rpart.tenMinModel,extra=102,under=TRUE, varlen=0,faclen=0)
+##XXout_df$status_binary = 0
+##XXout_df$status_binary[out_df$status=="success"] = 1
+##XXrpart.tenMinModel = rpart(status_binary ~  convertedTenMinCycle, data=problem_df,method="class",control=rpart.control(minbucket=25))
+##XXprp(rpart.tenMinModel,extra=102,under=TRUE, varlen=0,faclen=0)
 
-rpart.fiveMinModel = rpart(status_binary ~  convertedFiveMinCycle, data=problem_df,method="class",control=rpart.control(minbucket=25))
-prp(rpart.fiveMinModel,extra=102,under=TRUE, varlen=0,faclen=0)
+##XXrpart.fiveMinModel = rpart(status_binary ~  convertedFiveMinCycle, data=problem_df,method="class",control=rpart.control(minbucket=25))
+##XXprp(rpart.fiveMinModel,extra=102,under=TRUE, varlen=0,faclen=0)
 
 ## New report to estimate when the physical file is seen and when the the actual timestamp was ##
 next_file_df <- read.table(pipe("grep 'The next file is' elections.log"), sep='|',quote="\"")
@@ -414,8 +422,8 @@ ggplot(by_station1, aes(x=Station, y=AvgLag)) +
 
 #overlay both bar plot, shows throughput lag overlay with processing lag
 p <- ggplot(NULL, aes(Station, AvgLag)) + 
-  geom_bar(aes(fill = "Avg Election Processing Lag"), data = by_station, alpha = 0.7,stat="identity") +
-  geom_bar(aes(fill = "Avg NewsTicker Data Throughput Lag"), data = by_station1, alpha = 0.3,stat="identity") +
+  geom_bar(aes(fill = "Avg Election Processing Lag"), data = by_station, alpha = 1,stat="identity") +
+  geom_bar(aes(fill = "Avg NewsTicker Data Throughput Lag"), data = by_station1, alpha = 1,stat="identity") +
   ylab("Average Lag In Seconds") +
   xlab("Stations")
 p
