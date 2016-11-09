@@ -20,6 +20,15 @@ errors$Time <- errors$V1
 errors$Thread <-errors$V1
 errors$RaceId <-errors$V1
 errors$Station <- errors$V1
+if(!exists("errors")) {
+  errors <- data.frame(
+                   Day=character(),
+                   Time=character(),
+                   Thread=character(),
+                   RaceId=character(),
+                   Station=character(),
+                   stringsAsFactors=FALSE)
+}
 names(errors) <- c("Day", "Time", "Thread", "RaceId", "Station")
 
 a <- errors
@@ -127,6 +136,7 @@ success_df$two_min_bin = floor((success_df$convertedEDThm + 1)/ 2)
 
 ## Bind the two df
 out_df = rbind(failed_df,success_df)
+
 numOfFiveBins <- (1 + max(out_df$convertedEDTh) - min(out_df$convertedEDTh)) * 12
 
 ## Add a factor to represent 1 to 10 for every 10 minute interval (within a single day)
@@ -399,8 +409,8 @@ next_file_df$AvgLag1[is.na(next_file_df$AvgLag1)] <- 0
 ## Summary
 by_station1 <- group_by(next_file_df,Station)
 by_station1 <- summarize(by_station1, mean(AvgLag1))
-by_station1$AvgLag1 <- as.numeric(by_station1$AvgLag1)
 names(by_station1) <- c("Station", "AvgLag")
+by_station1$AvgLag1 <- as.numeric(by_station1$AvgLag)
 
 ## Join both by_station df
 ##by_station1 <- merge(by_station, by_station1, by.x = "Station")
