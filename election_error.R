@@ -432,8 +432,8 @@ ggplot(by_station1, aes(x=Station, y=AvgLag)) +
 
 #overlay both bar plot, shows throughput lag overlay with processing lag
 p <- ggplot(NULL, aes(Station, AvgLag)) + 
-  geom_bar(aes(fill = "Avg Election Processing Lag"), colour=c("grey"), data = by_station, alpha = .6,stat="identity") +
+  geom_bar(aes(fill = "Avg Election Processing Lag"), colour=c("red"), data = by_station, alpha = .6,stat="identity") +
   geom_bar(aes(fill = "Avg NewsTicker Data Throughput Lag"), colour=c("blue"), data = by_station1, alpha = .7,stat="identity") +
   ylab("Average Lag In Seconds") +
   xlab("Stations")
-p
+p + guides(fill=guide_legend(title="Key"))
