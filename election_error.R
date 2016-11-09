@@ -412,9 +412,6 @@ by_station1 <- summarize(by_station1, mean(AvgLag1))
 names(by_station1) <- c("Station", "AvgLag")
 by_station1$AvgLag1 <- as.numeric(by_station1$AvgLag)
 
-## Join both by_station df
-##by_station1 <- merge(by_station, by_station1, by.x = "Station")
-
 ## Box plot it
 ggplot(data = next_file_df, aes(x=Station, y=AvgLag1)) + 
   geom_boxplot(aes(fill=Station)) +
@@ -437,3 +434,17 @@ p <- ggplot(NULL, aes(Station, AvgLag)) +
   ylab("Average Lag In Seconds") +
   xlab("Stations")
 p + guides(fill=guide_legend(title="Key"))
+
+## Another way to plot similar line with dodge
+## Join both by_station df
+##by_station1 <- merge(by_station, by_station1, by.x = "Station")
+by_station$type <- "Avg Election Processing Lag"
+by_station1$type <- "Avg NewsTicker Data Throughput Lag"
+by_station1$AvgLag1 <- NULL
+
+x <- rbind(by_station, by_station1)
+ggplot(x, aes(x=factor(Station), y=AvgLag, fill=factor(type))) + 
+  geom_bar(stat="identity", colour="black", position="dodge") + 
+  ylab("Average Lag In Seconds") +
+  xlab("Stations") +
+  guides(fill=guide_legend(title="Key"))
