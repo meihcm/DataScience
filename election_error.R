@@ -15,7 +15,8 @@ rm(list = ls())
 setwd("/Users/michaelchiem/DataScience")
 ############################################## Doing full parse from raw file
 ## Parse errors
-errors <- read.table(pipe("grep 'Failed Save' elections.log"), sep='|',quote="\"")
+## NBC
+errors <- read.table(pipe("grep 'Failed Save' nbc_elections.log.2016_presidential"), sep='|',quote="\"")
 errors$Time <- errors$V1
 errors$Thread <-errors$V1
 errors$RaceId <-errors$V1
@@ -53,9 +54,51 @@ a$Day <- gsub(' .*$',"",a$Day)
 a$Day <- gsub('\\[',"",a$Day)
 
 errors <- a
+nbc_errors <- errors
+
+## TLM
+errors <- read.table(pipe("grep 'Failed Save' tlm_elections.log.2016_presidential"), sep='|',quote="\"")
+errors$Time <- errors$V1
+errors$Thread <-errors$V1
+errors$RaceId <-errors$V1
+errors$Station <- errors$V1
+if(!exists("errors")) {
+  errors <- data.frame(
+    Day=character(),
+    Time=character(),
+    Thread=character(),
+    RaceId=character(),
+    Station=character(),
+    stringsAsFactors=FALSE)
+}
+names(errors) <- c("Day", "Time", "Thread", "RaceId", "Station")
+
+a <- errors
+## Clean for stations
+a$Station <- gsub('^.*raceId=elections2016-',"",a$Station)
+a$Station <- gsub('-.*$',"",a$Station)
+
+## Clean for RaceId
+a$RaceId <- gsub('^.*raceId=',"",a$RaceId)
+a$RaceId <- gsub(',.*$',"",a$RaceId)
+
+## Clean for Thread
+a$Thread <- gsub('^.*Thread-',"",a$Thread)
+a$Thread <- gsub('].*$',"",a$Thread)
+
+## Clean for Time
+a$Time <- gsub(' ERROR.*$',"",a$Time)
+a$Time <- gsub('\\[.* ',"",a$Time)
+
+## Clean for Day
+a$Day <- gsub(' .*$',"",a$Day)
+a$Day <- gsub('\\[',"",a$Day)
+
+errors <- rbind(nbc_errors,a)
 
 ## Parse successes
-successes <- read.table(pipe("grep 'Success Save' elections.log"), sep='|', quote="\"")
+## nbc
+successes <- read.table(pipe("grep 'Success Save' nbc_elections.log.2016_presidential"), sep='|', quote="\"")
 successes$Time <- successes$V1
 successes$Thread <-successes$V1
 successes$RaceId <-successes$V1
@@ -83,6 +126,37 @@ a$Day <- gsub(' .*$',"",a$Day)
 a$Day <- gsub('\\[',"",a$Day)
 
 successes <- a
+nbc_successes <- successes
+
+## TLM
+successes <- read.table(pipe("grep 'Success Save' tlm_elections.log.2016_presidential"), sep='|', quote="\"")
+successes$Time <- successes$V1
+successes$Thread <-successes$V1
+successes$RaceId <-successes$V1
+successes$Station <- successes$V1
+names(successes) <- c("Day", "Time", "Thread", "RaceId", "Station")
+a <- successes
+## For station
+a$Station <- gsub('^.*raceId=elections2016-',"",a$Station)
+a$Station <- gsub('-.*$',"",a$Station)
+
+## Clean for RaceId
+a$RaceId <- gsub('^.*raceId=',"",a$RaceId)
+a$RaceId <- gsub(',.*$',"",a$RaceId)
+
+## Clean for Thread
+a$Thread <- gsub('^.*Thread-',"",a$Thread)
+a$Thread <- gsub('].*$',"",a$Thread)
+
+## Clean for Time
+a$Time <- gsub(' INFO.*$',"",a$Time)
+a$Time <- gsub('\\[.* ',"",a$Time)
+
+## Clean for Day
+a$Day <- gsub(' .*$',"",a$Day)
+a$Day <- gsub('\\[',"",a$Day)
+
+successes <- rbind(nbc_successes,a)
 
 ############################################## End doing full parse from raw file
 
