@@ -304,11 +304,17 @@ out_df$convertedEDTDayAsDate <- as.Date(out_df$convertedEDTDay, "%d-%B")
 prettyPrintFacetNames <- function(string) {
   return(format(string, format="%B-%d"))
 }
+## 2016-11-08 17:17:00
+## startDate = as.POSIXct("2016-11-08 17:00:00", "%y-%m-%d %H:%M:%S")
+## attr(startDate, "tzone") <- "America/New_York"
+## endDate <- as.POSIXct("2016-11-09 17:00:00", "%y-%m-%d %H:%M:%S")
+## attr(endDate, "tzone") <- "America/New_York"
+
 ## Combined success and failure on one graph
 ggplot(out_df, aes(convertedEDThm/60)) +
   geom_freqpoly(aes(group = status, colour = status), bins=numOfFiveBins) + facet_wrap(~convertedEDTDayAsDate, labeller=prettyPrintFacetNames) +
-  xlab("Time of Day (EDT)") + 
-  geom_hline(yintercept=500,linetype="dashed",color="red") 
+  xlab("Time of Day (ET)")  ## + 
+  ## geom_hline(yintercept=500,linetype="dashed",color="red") 
 
 ## Combined failure rate
 grouped_failure_rate = aggregate(out_df,by=list(out_df$five_min_bin,out_df$five_min_bin_failure_rate,out_df$convertedEDTDay),FUN=length)
@@ -374,27 +380,28 @@ numOfFiveBins <- (1 + max(problem_df$convertedEDTh) - min(problem_df$convertedED
 
 ## Only failures of problem_df
 problem_fail_only_df <- subset(problem_df, status=="fail")
-ten_min_interval_problem_df <- aggregate(problem_fail_only_df, by=list(problem_fail_only_df$Station, problem_fail_only_df$convertedTenMinCycle), FUN=length)
-names(ten_min_interval_problem_df) = c("Station","convertedTenMinCycle","Count")
-ten_min_interval_problem_df <- ten_min_interval_problem_df[,1:3]
+five_min_interval_problem_df <- aggregate(problem_fail_only_df, by=list(problem_fail_only_df$Station, problem_fail_only_df$convertedFiveMinCycle), FUN=length)
+names(five_min_interval_problem_df) = c("Station","convertedFiveMinCycle","Count")
+five_min_interval_problem_df <- five_min_interval_problem_df[,1:3]
 ## Now plot it
-##XXggplot(ten_min_interval_problem_df,aes(x=convertedTenMinCycle,y=Count)) + geom_bar(stat="identity") + facet_wrap(~Station)
+##XXggplot(five_min_interval_problem_df,aes(x=convertedFiveMinCycle,y=Count)) + geom_bar(stat="identity") + facet_wrap(~Station)
 
 ## Now expand it to across all data with failures
 only_failed_df = subset(out_df, status=="fail")
-ten_min_interval_all_df <- aggregate(only_failed_df, by=list(only_failed_df$Station, only_failed_df$convertedTenMinCycle), FUN=length)
-names(ten_min_interval_all_df) = c("Station","convertedTenMinCycle","Count")
-ten_min_interval_all_df <- ten_min_interval_all_df[,1:3]
+five_min_interval_all_df <- aggregate(only_failed_df, by=list(only_failed_df$Station, only_failed_df$convertedFiveMinCycle), FUN=length)
+names(five_min_interval_all_df) = c("Station","convertedFiveMinCycle","Count")
+five_min_interval_all_df <- five_min_interval_all_df[,1:3]
 ## Now plot it
-##XXggplot(ten_min_interval_all_df,aes(x=convertedTenMinCycle,y=Count)) + geom_bar(stat="identity") + facet_wrap(~Station)
+##XXggplot(five_min_interval_all_df,aes(x=convertedFiveMinCycle,y=Count)) + geom_bar(stat="identity") + facet_wrap(~Station)
 
 ## How bout map successes and not failures
 only_success_df = subset(out_df, status=="success")
-ten_min_interval_all_df <- aggregate(only_success_df, by=list(only_success_df$Station, only_success_df$convertedTenMinCycle), FUN=length)
-names(ten_min_interval_all_df) = c("Station","convertedTenMinCycle","Count")
-ten_min_interval_all_df <- ten_min_interval_all_df[,1:3]
+five_min_interval_all_df <- aggregate(only_success_df, by=list(only_success_df$Station, only_success_df$convertedFiveMinCycle), FUN=length)
+names(five_min_interval_all_df) = c("Station","convertedFiveMinCycle","Count")
+five_min_interval_all_df <- five_min_interval_all_df[,1:3]
 ## Now plot it
-##XXggplot(ten_min_interval_all_df,aes(x=convertedTenMinCycle,y=Count)) + geom_bar(stat="identity") + facet_wrap(~Station)
+ggplot(five_min_interval_all_df,aes(x=convertedFiveMinCycle,y=(Count))) + geom_bar(stat="identity")  +
+  xlab("Each Minute of 5 Minute Interval") + ylab("Total Saves") + facet_wrap(~Station)
 
 ## Over time success and failures by station (all station/all day)
 ##XXggplot(out_df, aes(convertedEDT)) +
@@ -429,11 +436,52 @@ ggplot(count_of_all_transactions_by_station, aes(x=count_of_unique_races_by_stat
 ## Try running some regression and plotting CART
 ##XXout_df$status_binary = 0
 ##XXout_df$status_binary[out_df$status=="success"] = 1
-##XXrpart.tenMinModel = rpart(status_binary ~  convertedTenMinCycle, data=problem_df,method="class",control=rpart.control(minbucket=25))
+##XXrpart.tenMinModel = rpart(status_binary ~  convertedFiveMinCycle, data=problem_df,method="class",control=rpart.control(minbucket=25))
 ##XXprp(rpart.tenMinModel,extra=102,under=TRUE, varlen=0,faclen=0)
 
 ##XXrpart.fiveMinModel = rpart(status_binary ~  convertedFiveMinCycle, data=problem_df,method="class",control=rpart.control(minbucket=25))
 ##XXprp(rpart.fiveMinModel,extra=102,under=TRUE, varlen=0,faclen=0)
+
+## Find lag in processor saves by station ##
+out_df$convertedEDT1 <- as.POSIXct( out_df$convertedEDT, format="%y-%m-%d %H:%M:%S", tz="America/New_York") 
+out_df <- out_df %>%
+  arrange(convertedEDT1) %>%
+  group_by(Station) %>%
+  mutate(ProccessorStationLag = convertedEDT1 - lag(convertedEDT1))
+## Prune the outliers (updates every 15 minutes)
+out_df <- out_df[out_df$ProccessorStationLag < (15*60),]
+out_df$ProccessorStationLag[is.na(out_df$ProccessorStationLag)] <- 0
+out_df <- out_df[!is.na(out_df$RaceId),]
+## Filter out >= 300 seconds lag as these are outliers ##
+out_df <- out_df[out_df$ProccessorStationLag <= 300,]
+
+by_station_lag <- group_by(out_df,Station)
+by_station_lag <- summarize(by_station_lag, mean(ProccessorStationLag))
+names(by_station_lag) <- c("Station", "AvgLag")
+by_station_lag <- by_station_lag[!is.na(by_station_lag$Station),]
+ggplot(by_station_lag, aes(x=Station, y=AvgLag)) + 
+  geom_bar(stat="identity", aes(fill=AvgLag)) +
+  xlab("Station") +
+  ylab("Average Lag Time in Seconds")
+
+## Find lag in processor saves by race id ##
+out_df$convertedEDT1 <- as.POSIXct( out_df$convertedEDT, format="%y-%m-%d %H:%M:%S", tz="America/New_York") 
+out_df <- out_df %>%
+  arrange(convertedEDT1) %>%
+  group_by(RaceId) %>%
+  mutate(ProccessorRaceLag = convertedEDT1 - lag(convertedEDT1))
+out_df$ProccessorRaceLag[is.na(out_df$ProccessorRaceLag)] <- 0
+## Prune the outliers 5 minutes
+out_df <- out_df[out_df$ProccessorRaceLag <= 300,]
+
+by_race_lag <- group_by(out_df,RaceId)
+by_race_lag <- summarize(by_race_lag, mean(ProccessorRaceLag))
+names(by_race_lag) <- c("RaceId", "AvgLag")
+ggplot(by_race_lag, aes(x=RaceId, y=AvgLag)) + 
+  geom_bar(stat="identity", aes(fill=AvgLag)) +
+  xlab("Race") +
+  ylab("Average Lag Time in Seconds")
+
 
 ## New report to estimate when the physical file is seen and when the the actual timestamp was ##
 next_file_df <- read.table(pipe("grep 'The next file is' elections.log"), sep='|',quote="\"")
@@ -456,6 +504,9 @@ next_file_df$lagTimeInSeconds <- abs(next_file_df$FileUnixTime - next_file_df$Lo
 ## Parse station
 next_file_df$Station <- gsub('^.*elx-',"",next_file_df$Station)
 next_file_df$Station <- gsub('-.*$',"",next_file_df$Station)
+## Remove any lag over 5 minutes as that signify regular non-new data updates
+next_file_df <- next_file_df[next_file_df$lagTimeInSeconds <= 60*5,]
+
 ## Summary
 by_station <- group_by(next_file_df,Station)
 by_station <- summarize(by_station, mean(lagTimeInSeconds))
@@ -512,8 +563,8 @@ p + guides(fill=guide_legend(title="Key"))
 ## Another way to plot similar line with dodge
 ## Join both by_station df
 ##by_station1 <- merge(by_station, by_station1, by.x = "Station")
-by_station$type <- "Avg Election Processing Lag"
-by_station1$type <- "Avg NewsTicker Data Throughput Lag"
+by_station$type <- "Avg Election Enqueueing Lag"
+by_station1$type <- "Avg NewsTicker Transfer Lag"
 by_station1$AvgLag1 <- NULL
 
 x <- rbind(by_station, by_station1)
@@ -522,3 +573,41 @@ ggplot(x, aes(x=factor(Station), y=AvgLag, fill=factor(type))) +
   ylab("Average Lag In Seconds") +
   xlab("Stations") +
   guides(fill=guide_legend(title="Key"))
+
+## Plot enqueueing vs save lags
+by_station_lag$type <- "Avg Election Save Lag"
+x <- rbind(by_station, by_station_lag)
+x <- x[!is.na(x$Station),]
+ggplot(x, aes(x=factor(Station), y=AvgLag, fill=factor(type))) + 
+  geom_bar(stat="identity", colour="black", position="dodge") + 
+  ylab("Average Lag In Seconds") +
+  xlab("Stations") +
+  guides(fill=guide_legend(title="Key"))
+
+## Stacking the chart
+ggplot(x, aes(x=factor(Station), y=AvgLag, fill=factor(type))) + 
+  geom_bar(stat="identity", colour="black") + 
+  ylab("Average Lag In Seconds") +
+  xlab("Stations") +
+  guides(fill=guide_legend(title="Key"))
+
+## Lag over time
+## Take mean given 5 minute interval
+## Processor lag
+processor_lag_over_time_df = out_df %>% group_by(convertedEDTDay,five_min_bin) %>% mutate(five_min_lag = mean(ProccessorRaceLag))
+
+next_file_df$convertedEDT <- as.POSIXct( next_file_df$LogTime, format="%y-%m-%d %H:%M:%S", tz="America/New_York") 
+attr(next_file_df$convertedEDT, "tzone") <- "America/New_York"
+next_file_df$convertedEDTh <- as.numeric(format(next_file_df$convertedEDT,"%H"))
+next_file_df$convertedEDThm <- (next_file_df$convertedEDTh * 60) + as.numeric(format(next_file_df$convertedEDT,"%M"))
+next_file_df$five_min_bin = floor((next_file_df$convertedEDThm + 1)/ 5)
+next_file_df$convertedEDTDay = format(next_file_df$convertedEDT,format="%d-%B")
+next_file_df$convertedEDTDayAsDate <- as.Date(next_file_df$convertedEDTDay, "%d-%B")
+next_file_lag_over_time_df = next_file_df %>% group_by(convertedEDTDay,five_min_bin) %>% mutate(five_min_lag = mean(lagTimeInSeconds))
+
+p <- ggplot(NULL, aes(x=convertedEDT,y=five_min_lag)) + 
+  geom_smooth(aes(fill = "Avg Election Processing Lag"),colour=c("red"),  data = processor_lag_over_time_df, weight=1,size=1) +
+  geom_smooth(aes(fill = "Avg NewsTicker Data Throughput Lag"), colour=c("blue"), data = next_file_lag_over_time_df, weight=1,size=1) +
+  ylab("Average Lag In Seconds") +
+  xlab("Time of Day ET")
+p + guides(fill=guide_legend(title="Key"))
