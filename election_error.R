@@ -482,6 +482,20 @@ ggplot(by_station_lag, aes(x=Station, y=AvgLag)) +
   xlab("Station") +
   ylab("Average Lag Time in Seconds")
 
+## Top 3 longest race lag
+ggplot(subset(out_df[out_df$RaceId == c("elections2016-necn-15","elections2016-necn-13","elections2016-necn-33"),]), aes(x=convertedEDT, y=ProccessorRaceLag)) + 
+  geom_smooth(level = .1) +
+  facet_grid(RaceId ~ .) +
+  xlab("Time (ET)") +
+  ylab("Average Lag Time in Seconds")
+
+## Top 3 shortest race lag
+ggplot(subset(out_df[out_df$RaceId == c("elections2016-wmaq-312","elections2016-wnju-1","elections2016-kvda-3"),]), aes(x=convertedEDT, y=ProccessorRaceLag)) + 
+  geom_smooth(level = .1) +
+  facet_grid(RaceId ~ .) +
+  xlab("Time (ET)") +
+  ylab("Average Lag Time in Seconds")
+
 ## Find lag in processor saves by race id ##
 out_df$convertedEDT1 <- as.POSIXct( out_df$convertedEDT, format="%y-%m-%d %H:%M:%S", tz="America/New_York") 
 out_df <- out_df %>%
