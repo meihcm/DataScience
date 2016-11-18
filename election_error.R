@@ -312,9 +312,27 @@ prettyPrintFacetNames <- function(string) {
 
 ## Combined success and failure on one graph
 ggplot(out_df, aes(convertedEDThm/60)) +
-  geom_freqpoly(aes(group = status, colour = status), bins=numOfFiveBins) + facet_wrap(~convertedEDTDayAsDate, labeller=prettyPrintFacetNames) +
-  xlab("Time of Day (ET)")  ## + 
+  geom_freqpoly(aes(group = status, colour = status), bins=numOfFiveBins) + 
+  scale_x_continuous(expand=c(0,0)) + 
+  scale_y_continuous(limits=c(1,3000), expand=c(0,0))+
+  facet_wrap(~convertedEDTDayAsDate) +
+  xlab("Time of Day (ET)")  +
+  ylab("Frequency of Updates (5 Minute Intervals)")
   ## geom_hline(yintercept=500,linetype="dashed",color="red") 
+
+## Using stat_count type of plotting
+## Group by count per hour
+group_by_hour_count_df = aggregate(out_df,by=list(out_df$convertedEDTDayAsDate,out_df$convertedEDTh),FUN=length)
+names(group_by_hour_count_df) = c("convertedEDTDayAsDate","convertedEDTh","count")
+group_by_hour_count_df <- group_by_hour_count_df[,1:3]
+
+ggplot(group_by_hour_count_df, aes(convertedEDTh, count)) +
+  geom_point() +
+  facet_wrap(~convertedEDTDayAsDate) +
+  xlab("Time of Day (ET)") +
+  ylab("Total Per Hour") +
+  geom_line()
+
 
 ## Combined failure rate
 grouped_failure_rate = aggregate(out_df,by=list(out_df$five_min_bin,out_df$five_min_bin_failure_rate,out_df$convertedEDTDay),FUN=length)
